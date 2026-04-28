@@ -76,7 +76,6 @@ async function syncAgentsMd(worktree: string) {
   if (!isGenerated) return
 
   const info = await detectProject(worktree)
-  if (!info.hasAnything) return
 
   await writeFile(agentsMdPath, renderAgentsMd(info), "utf-8")
 }

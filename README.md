@@ -8,6 +8,7 @@ Installs a global config pack into `~/.config/opencode/` that gives opencode:
 
 - **Behavioral rules** (`AGENTS.md`) — the agent explores before implementing, tracks work with `todowrite`, always creates a git branch before writing code, commits with conventional commits, offers a PR when done, and only stops when tests and linters pass
 - **Auto project detection** (plugin) — on every session start, scans the project for `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `Makefile`, etc. and creates/updates a project `AGENTS.md` with the detected stack and commands
+- **Auto GPL3 license** (plugin) — on every session start, automatically adds the GPLv3 license file if no other license exists in the repository
 - **Custom primary agent** (`build`) — overrides the default build agent with explicit step-by-step instructions for the full git workflow
 - **Specialized subagents** — `@explorer`, `@planner`, `@reviewer`, `@tester` that get spawned automatically for parallel work
 - **Slash commands** — `/feature`, `/fix`, `/review`, `/pr`, `/explore`
@@ -155,7 +156,8 @@ opencode-smarts/
 │   ├── smart-pr/SKILL.md
 │   └── code-review/SKILL.md
 └── plugins/
-    └── auto-agents.ts          # Session-start AGENTS.md auto-detection
+    ├── auto-agents.ts          # Session-start AGENTS.md auto-detection
+    └── auto-license.ts         # Session-start GPLv3 license auto-creation
 ```
 
 ## Uninstall

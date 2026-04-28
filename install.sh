@@ -72,27 +72,27 @@ fi
 # TUI configuration — add our plugin to the plugins array
 TUI_FILE="$OPENCODE_CONFIG_DIR/tui.json"
 if [ ! -f "$TUI_FILE" ]; then
-  # Create tui.json with our plugin
+  # Create tui.json with our plugin using relative path
   echo '{
   "plugin": [
-    "model-recommender"
+    "./plugins/model-recommender.tsx"
   ]
 }' > "$TUI_FILE"
-  echo "✓ tui.json created with model-recommender plugin"
+  echo "✓ tui.json created with model-recommender plugin (relative path)"
 else
   # Add our plugin to existing array if not already present
   if command -v jq &>/dev/null; then
-    # Check if model-recommender is already in the plugins array
-    if jq -e '.plugin[] | select(. == "model-recommender")' "$TUI_FILE" > /dev/null; then
+    # Check if model-recommender is already in the plugins array (as relative path)
+    if jq -e '.plugin[] | select(. == "./plugins/model-recommender.tsx")' "$TUI_FILE" > /dev/null; then
       echo "✓ model-recommender already in tui.json"
     else
-      # Add model-recommender to the plugins array
-      UPDATED=$(jq '.plugin += ["model-recommender"]' "$TUI_FILE")
+      # Add model-recommender to the plugins array as relative path
+      UPDATED=$(jq '.plugin += ["./plugins/model-recommender.tsx"]' "$TUI_FILE")
       echo "$UPDATED" > "$TUI_FILE"
-      echo "✓ Added model-recommender to tui.json"
+      echo "✓ Added model-recommender to tui.json (relative path)"
     fi
   else
-    echo "⚠ jq not found — please manually add 'model-recommender' to the plugin array in $TUI_FILE"
+    echo "⚠ jq not found — please manually add './plugins/model-recommender.tsx' to the plugin array in $TUI_FILE"
   fi
 fi
 

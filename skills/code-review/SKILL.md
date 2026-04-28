@@ -1,24 +1,66 @@
 ---
 name: code-review
-description: Run full code review with parallel agents and validation
+description: Full code review with parallel analysis across correctness, security, quality, and test coverage
 license: MIT
 compatibility: opencode
 ---
 
 ## Trigger
-`/code-review` - Run full code review with parallel agents and validation.
+Load this skill when asked to review code, do a code review, or run `/code-review`.
 
 ## Workflow
-1. Use `todo` tool to list review steps
-2. Launch 4 parallel `task` tool calls with `plan` subagent:
-   - Reviewer 1: Coding standards compliance (check AGENTS.md)
-   - Reviewer 2: Bug/security detection
-   - Reviewer 3: Test coverage gaps
-   - Reviewer 4: Performance/edge cases
-3. For each issue found, launch `task` with `explore` subagent to validate (confidence < 0.7 = discard)
-4. Compile final report:
-   - Critical Issues (confidence > 0.8)
-   - Warnings (0.5-0.8)
-   - Suggestions (<0.5)
-5. Call `engram_mem_save` with review patterns (type: `pattern`, topic_key: `code-review/latest`)
-6. Return formatted report to user
+
+### 1. Get the Diff
+```bash
+# Branch changes vs main
+git diff main...HEAD 2>/dev/null || git diff master...HEAD
+
+# Or uncommitted changes
+git diff HEAD
+```
+
+### 2. Launch Parallel Review
+Spawn 3-4 parallel `@explore` or `@reviewer` subagents, each focused on one lens:
+
+**Reviewer A — Correctness**
+- Logic errors, wrong conditions, off-by-one
+- Null/undefined not handled
+- Error paths silently swallowed
+- Async bugs (missing await, race conditions)
+
+**Reviewer B — Security**
+- User input validated before use
+- No secrets in code or logs
+- SQL injection, XSS, path traversal risks
+- Auth checks on all protected operations
+
+**Reviewer C — Quality**
+- Follows project conventions (check AGENTS.md)
+- Clear naming, no dead code
+- Functions focused (single responsibility)
+- No unnecessary complexity
+
+**Reviewer D — Tests**
+- New logic has test coverage
+- Tests cover failure cases
+- Tests are meaningful (not just happy path)
+
+### 3. Validate Findings
+For each finding with confidence < 0.7, read the relevant code yourself to confirm before including it.
+
+### 4. Compile Report
+```
+## Code Review
+
+### Critical (must fix)
+- file:line — description — impact
+
+### Warning (should fix)  
+- file:line — description — risk
+
+### Suggestion (optional)
+- file:line — description — improvement
+
+### Verdict
+**Approve** / **Approve with fixes** / **Request changes**
+```

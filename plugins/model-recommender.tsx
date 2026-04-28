@@ -259,10 +259,10 @@ function pickRecommendations(models: ModelInfo[]): RecommendationData {
   const bestBalanced = [...budget].sort((a, b) => scoreBalanced(b) - scoreBalanced(a))
 
   return {
-    free_candidates: free.slice(0, 3),
-    cheapest_quality_paid: cheapestQualityPaid.slice(0, 3),
-    best_value_under_budget: bestValue.slice(0, 3),
-    best_balanced_under_budget: bestBalanced.slice(0, 3),
+    free_candidates: free.slice(0, 2),
+    cheapest_quality_paid: cheapestQualityPaid.slice(0, 2),
+    best_value_under_budget: bestValue.slice(0, 2),
+    best_balanced_under_budget: bestBalanced.slice(0, 2),
     timestamp: Date.now(),
   }
 }
@@ -275,11 +275,7 @@ function formatPrice(price: number | null): string {
   return `$${price.toFixed(3)}`
 }
 
-function formatScore(score: number): string {
-  return score.toFixed(1)
-}
-
-function formatModelName(name: string, maxLen: number = 30): string {
+function formatModelName(name: string, maxLen: number = 25): string {
   if (name.length <= maxLen) return name
   return name.slice(0, maxLen - 3) + "..."
 }
@@ -290,18 +286,18 @@ function ModelCard(props: { model: ModelInfo; label: string; isFree?: boolean; a
   const borderColor = props.isFree ? props.api.theme.current.success : props.api.theme.current.primary
   return (
     <>
-      <text fg={props.api.theme.current.text} bold>{formatModelName(props.model.name)}</text>
-      <text fg={props.api.theme.current.textMuted}> ({props.model.creator})</text>
-      <text fg={borderColor}>───────────────────────────────────────</text>
+      <text fg={props.api.theme.current.text} bold>{formatModelName(props.model.name, 25)}</text>
+      <text fg={props.api.theme.current.textMuted}> ({formatModelName(props.model.creator, 15)})</text>
+      <text fg={borderColor}>──────────────────</text>
       <text fg={props.api.theme.current.textMuted}>
         {props.label}: {formatPrice(props.model.blended_price)}/1M
         {" | "}
-        Coding: {props.model.coding ?? "N/A"}
+        C:{props.model.coding?.toFixed(0) ?? "N/A"}
         {" | "}
-        Intel: {props.model.intelligence ?? "N/A"}
+        I:{props.model.intelligence?.toFixed(0) ?? "N/A"}
       </text>
       {props.model.provider_model_id && (
-        <text fg={props.api.theme.current.accent}>OpenRouter: {props.model.provider_model_id}</text>
+        <text fg={props.api.theme.current.accent} size="small">→ {props.model.provider_model_id}</text>
       )}
       <text>{"\n"}</text>
     </>
@@ -319,6 +315,16 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
     return paid.length > 0 ? paid[0] : null
   })
 
+  const secondFree = createMemo(() => {
+    const free = props.data.free_candidates
+    return free.length > 1 ? free[1] : null
+  })
+
+  const secondPaid = createMemo(() => {
+    const paid = props.data.best_balanced_under_budget
+    return paid.length > 1 ? paid[1] : null
+  })
+
   const lastUpdated = createMemo(() => {
     const d = new Date(props.data.timestamp)
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -329,54 +335,40 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
       <text fg={props.api.theme.current.primary} bold>Model Recommendations</text>
       <text fg={props.api.theme.current.textMuted} size="small">Updated: {lastUpdated()}</text>
       <text>{"\n"}</text>
-      <text>{"\n"}</text>
 
       {/* Best Free Model */}
-      <text fg={props.api.theme.current.success} bold>Best Free Model</text>
+      <text fg={props.api.theme.current.success} bold>★ Best Free</text>
       <text>{"\n"}</text>
       {bestFree() ? (
         <ModelCard model={bestFree()!} label="Free" isFree={true} api={props.api} />
       ) : (
         <text fg={props.api.theme.current.textMuted}>No free models available</text>
       )}
+      {secondFree() && (
+        <>
+          <text fg={props.api.theme.current.textMuted} size="small">  Alt: {formatModelName(secondFree()!.name, 22)} ({secondFree()!.creator})</text>
+        </>
+      )}
       <text>{"\n"}</text>
 
       {/* Best Paid Model */}
-      <text fg={props.api.theme.current.warning} bold>Best Cost-Effective Paid</text>
+      <text fg={props.api.theme.current.warning} bold>★ Best Paid (≤$0.50/1M)</text>
       <text>{"\n"}</text>
       {bestPaid() ? (
-        <ModelCard model={bestPaid()!} label="Blended" api={props.api} />
+        <ModelCard model={bestPaid()!} label="Paid" api={props.api} />
       ) : (
         <text fg={props.api.theme.current.textMuted}>No paid models available</text>
       )}
-      <text>{"\n"}</text>
-
-      {/* Additional Options */}
-      {props.data.free_candidates.length > 1 && (
+      {secondPaid() && (
         <>
-          <text fg={props.api.theme.current.textMuted} size="small">Other free options:</text>
-          <text>{"\n"}</text>
-          {props.data.free_candidates.slice(1, 3).map((m) => (
-            <text fg={props.api.theme.current.textMuted} size="small">• {formatModelName(m.name, 25)}</text>
-          ))}
-          <text>{"\n"}</text>
-        </>
-      )}
-
-      {props.data.best_balanced_under_budget.length > 1 && (
-        <>
-          <text fg={props.api.theme.current.textMuted} size="small">Other paid options:</text>
-          <text>{"\n"}</text>
-          {props.data.best_balanced_under_budget.slice(1, 3).map((m) => (
-            <text fg={props.api.theme.current.textMuted} size="small">• {formatModelName(m.name, 25)} (${m.blended_price?.toFixed(3)}/1M)</text>
-          ))}
+          <text fg={props.api.theme.current.textMuted} size="small">  Alt: {formatModelName(secondPaid()!.name, 22)} (${secondPaid()!.blended_price?.toFixed(3)})</text>
         </>
       )}
 
       {props.data.error && (
         <>
           <text>{"\n"}</text>
-          <text fg={props.api.theme.current.error} size="small">Error: {props.data.error}</text>
+          <text fg={props.api.theme.current.error} size="small">⚠ {props.data.error}</text>
         </>
       )}
     </>

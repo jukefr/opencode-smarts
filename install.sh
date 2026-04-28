@@ -87,7 +87,7 @@ else
       echo "✓ model-recommender already in tui.json"
     else
       # Add model-recommender to the plugins array
-      UPDATED=$(jq '.plugin += ["model-recommender"] | unique' "$TUI_FILE")
+      UPDATED=$(jq '.plugin += ["model-recommender"]' "$TUI_FILE")
       echo "$UPDATED" > "$TUI_FILE"
       echo "✓ Added model-recommender to tui.json"
     fi

@@ -292,9 +292,7 @@ function ModelCard(props: { model: ModelInfo; label: string; isFree?: boolean; a
     <>
       <text fg={props.api.theme.current.text} bold>{formatModelName(props.model.name)}</text>
       <text fg={props.api.theme.current.textMuted}> ({props.model.creator})</text>
-      {"\n"}
       <text fg={borderColor}>───────────────────────────────────────</text>
-      {"\n"}
       <text fg={props.api.theme.current.textMuted}>
         {props.label}: {formatPrice(props.model.blended_price)}/1M
         {" | "}
@@ -303,12 +301,9 @@ function ModelCard(props: { model: ModelInfo; label: string; isFree?: boolean; a
         Intel: {props.model.intelligence ?? "N/A"}
       </text>
       {props.model.provider_model_id && (
-        <>
-          {"\n"}
-          <text fg={props.api.theme.current.accent}>OpenRouter: {props.model.provider_model_id}</text>
-        </>
+        <text fg={props.api.theme.current.accent}>OpenRouter: {props.model.provider_model_id}</text>
       )}
-      {"\n"}
+      <text>{"\n"}</text>
     </>
   )
 }
@@ -332,46 +327,46 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
   return (
     <>
       <text fg={props.api.theme.current.primary} bold>Model Recommendations</text>
-      {"\n"}
       <text fg={props.api.theme.current.textMuted} size="small">Updated: {lastUpdated()}</text>
-      {"\n\n"}
+      <text>{"\n"}</text>
+      <text>{"\n"}</text>
 
       {/* Best Free Model */}
       <text fg={props.api.theme.current.success} bold>Best Free Model</text>
-      {"\n"}
+      <text>{"\n"}</text>
       {bestFree() ? (
         <ModelCard model={bestFree()!} label="Free" isFree={true} api={props.api} />
       ) : (
         <text fg={props.api.theme.current.textMuted}>No free models available</text>
       )}
-      {"\n"}
+      <text>{"\n"}</text>
 
       {/* Best Paid Model */}
       <text fg={props.api.theme.current.warning} bold>Best Cost-Effective Paid</text>
-      {"\n"}
+      <text>{"\n"}</text>
       {bestPaid() ? (
         <ModelCard model={bestPaid()!} label="Blended" api={props.api} />
       ) : (
         <text fg={props.api.theme.current.textMuted}>No paid models available</text>
       )}
-      {"\n"}
+      <text>{"\n"}</text>
 
       {/* Additional Options */}
       {props.data.free_candidates.length > 1 && (
         <>
           <text fg={props.api.theme.current.textMuted} size="small">Other free options:</text>
-          {"\n"}
+          <text>{"\n"}</text>
           {props.data.free_candidates.slice(1, 3).map((m) => (
             <text fg={props.api.theme.current.textMuted} size="small">• {formatModelName(m.name, 25)}</text>
           ))}
-          {"\n"}
+          <text>{"\n"}</text>
         </>
       )}
 
       {props.data.best_balanced_under_budget.length > 1 && (
         <>
           <text fg={props.api.theme.current.textMuted} size="small">Other paid options:</text>
-          {"\n"}
+          <text>{"\n"}</text>
           {props.data.best_balanced_under_budget.slice(1, 3).map((m) => (
             <text fg={props.api.theme.current.textMuted} size="small">• {formatModelName(m.name, 25)} (${m.blended_price?.toFixed(3)}/1M)</text>
           ))}
@@ -380,7 +375,7 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
 
       {props.data.error && (
         <>
-          {"\n"}
+          <text>{"\n"}</text>
           <text fg={props.api.theme.current.error} size="small">Error: {props.data.error}</text>
         </>
       )}
@@ -472,9 +467,7 @@ const tui: TuiPlugin = async (api) => {
          const data = recommendations()
          if (!data) {
            return (
-             <>
-               <text fg={api.theme.current.textMuted}>Loading model recommendations...</text>
-             </>
+             <text fg={api.theme.current.textMuted}>Loading model recommendations...</text>
            )
          }
          return <RecommendationsPanel data={data} api={api} />

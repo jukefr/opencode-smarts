@@ -19,6 +19,7 @@ Installs a global config pack into `~/.config/opencode/` that gives opencode:
 - **Skills** — reusable instruction sets loaded on demand: `feature-build`, `bug-fix`, `smart-commit`, `smart-pr`, `code-review`
 - **Safe permissions** — blocks `rm -rf`, force-push to main, `DROP TABLE/DATABASE` by default
 - **Context7 MCP** — library docs lookup, enabled by default
+- **Engram MCP** — persistent memory across sessions, auto-installed via `install.sh`
 
 ## Install
 
@@ -102,14 +103,6 @@ The `auto-agents` plugin creates a project `AGENTS.md` automatically on session 
 
 To customise it, edit the generated `AGENTS.md` in your project root — once you remove the placeholder text, the plugin leaves it alone.
 
-You can also start from the template manually:
-
-```bash
-cp ~/opencode-smarts/templates/project-agents.md ./AGENTS.md
-```
-
-Fill in your test/lint commands, stack, and architecture notes. Commit it.
-
 **Detected automatically:**
 
 | File | What's extracted |
@@ -159,8 +152,7 @@ opencode-smarts/
 ├── install.sh                  # Symlink installer + opencode.json/tui.json merge
 ├── opencode.json               # Config template (permissions, context7 MCP)
 ├── templates/
-│   ├── global-agents.md        # Global rules → ~/.config/opencode/AGENTS.md
-│   └── project-agents.md      # Project AGENTS.md template (manual use)
+│   └── global-agents.md        # Global rules → ~/.config/opencode/AGENTS.md
 ├── agents/
 │   ├── build.md                # Primary agent override — full git workflow
 │   ├── explorer.md             # Read-only codebase analyst

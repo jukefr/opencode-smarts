@@ -96,6 +96,71 @@ else
   fi
 fi
 
+# ── Engram (persistent memory MCP for AI agents) ─────────────────────────────
+echo ""
+install_engram() {
+  if command -v engram &>/dev/null; then
+    echo "✓ engram already installed"
+    return 0
+  fi
+  echo "  engram not found, installing..."
+  if command -v brew &>/dev/null; then
+    if brew install gentleman-programming/tap/engram; then
+      return 0
+    fi
+  fi
+  if command -v go &>/dev/null; then
+    if go install github.com/Gentleman-Programming/engram@latest; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+if install_engram; then
+  echo "✓ engram ready (MCP config provided via opencode.json)"
+else
+  echo "⚠ Could not install engram automatically"
+  echo "  Install from: https://github.com/Gentleman-Programming/engram"
+fi
+
+# ── Graphify (codebase knowledge graphs) ─────────────────────────────────────
+echo ""
+install_graphify() {
+  if command -v graphify &>/dev/null; then
+    echo "✓ graphify already installed"
+    return 0
+  fi
+  echo "  graphify not found, installing..."
+  if command -v uv &>/dev/null; then
+    if uv tool install graphifyy; then
+      return 0
+    fi
+  fi
+  if command -v pip &>/dev/null; then
+    if pip install graphifyy; then
+      return 0
+    fi
+  fi
+  if command -v pip3 &>/dev/null; then
+    if pip3 install graphifyy; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+if install_graphify; then
+  # Run graphify install to register the skill file, then remove its dumb plugin
+  graphify install --platform opencode 2>/dev/null || true
+  rm -f "$OPENCODE_CONFIG_DIR/plugins/graphify.js" 2>/dev/null || true
+  rm -rf .opencode/ 2>/dev/null || true
+  echo "✓ graphify ready (skill registered, dumb plugin removed)"
+else
+  echo "⚠ Could not install graphify automatically"
+  echo "  Install from: https://github.com/safishamsi/graphify"
+fi
+
 echo ""
 echo "Done. Restart opencode to apply changes."
 echo ""

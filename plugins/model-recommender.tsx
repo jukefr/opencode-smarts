@@ -288,16 +288,24 @@ function formatModelName(name: string, maxLen: number = 25): string {
 
 // ─── Recommendations Panel ───────────────────────────────────────────────────
 
-function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
-  const models = createMemo(() => [
-    ...props.data.free_candidates.slice(0, 2),
-    ...props.data.best_balanced_under_budget.slice(0, 2),
-  ])
+// Receives the signal accessor itself so SolidJS tracks reactivity on updates
+function RecommendationsPanel(props: { recommendations: () => RecommendationData | null; api: any }) {
+  const models = createMemo(() => {
+    const d = props.recommendations()
+    if (!d) return []
+    return [
+      ...d.free_candidates.slice(0, 2),
+      ...d.best_balanced_under_budget.slice(0, 2),
+    ]
+  })
 
-  const lastUpdated = createMemo(() =>
-    new Date(props.data.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  )
+  const lastUpdated = createMemo(() => {
+    const d = props.recommendations()
+    if (!d) return ""
+    return new Date(d.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  })
 
+  const error = () => props.recommendations()?.error
   const theme = () => props.api.theme.current
   const stripParens = (s: string) => s.replace(/\s*\(.*?\)\s*$/, "").trim()
 
@@ -315,8 +323,8 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
           </text>
         )
       })}
-      {props.data.error && (
-        <text fg={theme().error}>⚠ {props.data.error}</text>
+      {error() && (
+        <text fg={theme().error}>⚠ {error()}</text>
       )}
     </box>
   )
@@ -481,18 +489,13 @@ const tui: TuiPlugin = async (api) => {
     unregisterCommands()
   })
 
-   // Register sidebar slot
+   // Register sidebar slot — always returns the same component so SolidJS
+   // maintains the reactive subscription to the recommendations signal
    api.slots.register({
      order: 1000,
      slots: {
        sidebar_content(ctx, value) {
-         const data = recommendations()
-         if (!data) {
-           return (
-             <text fg={api.theme.current.textMuted}>Loading model recommendations...</text>
-           )
-         }
-         return <RecommendationsPanel data={data} api={api} />
+         return <RecommendationsPanel recommendations={recommendations} api={api} />
        },
      },
    })

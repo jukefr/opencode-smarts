@@ -1,6 +1,20 @@
 import { readFile, writeFile, access } from "fs/promises"
 import path from "path"
 
+const GRAPHIFY_START = "<!-- graphify:start -->"
+const GRAPHIFY_END = "<!-- graphify:end -->"
+
+function graphifySection(): string {
+  return `## Graphify Knowledge Graph
+
+This project has a knowledge graph at \`graphify-out/\`.
+
+- Before answering architecture or codebase questions, read \`graphify-out/GRAPH_REPORT.md\` for god nodes and community structure
+- If \`graphify-out/wiki/index.md\` exists, navigate it instead of reading raw files
+- For cross-module questions prefer \`graphify query "<question>"\`, \`graphify path "<A>" "<B>"\`, or \`graphify explain "<concept>"\` over grep — these traverse EXTRACTED + INFERRED edges instead of scanning files
+- After modifying code files run \`graphify update .\` to keep the graph current (AST-only, no API cost)`
+}
+
 export default {
   id: "auto-agents",
   server: async ({ worktree }: { worktree: string }) => {
@@ -44,19 +58,37 @@ async function syncAgentsMd(worktree: string) {
 
   const agentsMdPath = path.join(worktree, "AGENTS.md")
   const existing = await readText(agentsMdPath)
+  const hasGraphify = await exists(path.join(worktree, "graphify-out", "GRAPH_REPORT.md"))
 
-  // Leave it alone if it's already been customised (no placeholder markers left)
   const isGenerated = existing === "" ||
     existing.includes("<!-- opencode-smarts:auto -->") ||
     existing.includes("[Replace with") ||
     existing.includes("[Add key") ||
     existing.includes("[Add project-specific")
 
-  if (!isGenerated) return
+  if (isGenerated) {
+    const info = await detectProject(worktree)
+    await writeFile(agentsMdPath, renderAgentsMd(info, hasGraphify), "utf-8")
+  } else if (hasGraphify) {
+    // File has been customised — upsert just the graphify block without touching the rest
+    await upsertGraphifySection(agentsMdPath, existing)
+  }
+}
 
-  const info = await detectProject(worktree)
-
-  await writeFile(agentsMdPath, renderAgentsMd(info), "utf-8")
+async function upsertGraphifySection(agentsMdPath: string, content: string) {
+  const block = `${GRAPHIFY_START}\n${graphifySection()}\n${GRAPHIFY_END}`
+  let updated: string
+  if (content.includes(GRAPHIFY_START)) {
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    updated = content.replace(
+      new RegExp(`${esc(GRAPHIFY_START)}[\\s\\S]*?${esc(GRAPHIFY_END)}`),
+      block
+    )
+  } else {
+    const sep = content.endsWith("\n") ? "" : "\n"
+    updated = `${content}${sep}\n${block}\n`
+  }
+  await writeFile(agentsMdPath, updated, "utf-8")
 }
 
 // ─── detection ──────────────────────────────────────────────────────────────
@@ -149,7 +181,7 @@ async function detectMakefile(worktree: string, info: ProjectInfo) {
 
 // ─── render ─────────────────────────────────────────────────────────────────
 
-function renderAgentsMd(info: ProjectInfo) {
+function renderAgentsMd(info: ProjectInfo, hasGraphify = false) {
   const { commands: c } = info
 
   const cmdsBlock = [
@@ -159,6 +191,10 @@ function renderAgentsMd(info: ProjectInfo) {
     c.lint       && `# Lint\n${c.lint}`,
     c.typecheck  && `# Typecheck\n${c.typecheck}`,
   ].filter(Boolean).join("\n\n")
+
+  const graphifyBlock = hasGraphify
+    ? `\n${GRAPHIFY_START}\n${graphifySection()}\n${GRAPHIFY_END}\n`
+    : ""
 
   return `<!-- opencode-smarts:auto -->
 # Project Rules
@@ -179,5 +215,5 @@ Always run lint and tests before considering a task complete.
 
 ## Conventions
 [Add project-specific coding conventions here]
-`
+${graphifyBlock}`
 }

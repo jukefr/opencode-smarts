@@ -69,6 +69,18 @@ Spawn subagents for independent subtasks using the `task` tool:
 | `@general` | General-purpose parallel tasks (built-in) |
 | `@explore` | Fast read-only exploration (built-in) |
 
+## RULE 7 — Graphify knowledge graph (auto-bootstrap)
+
+At the **start of every session**, after reading `AGENTS.md`, if `graphify` is in PATH:
+
+1. Check whether `graphify-out/GRAPH_REPORT.md` exists in the project root.
+2. **If it does not exist** → build the knowledge graph now by following the `graphify` skill. This runs the full pipeline: file detection, AST extraction, LLM semantic extraction via parallel subagents, community labeling, and report generation. Do this before starting any other work — the graph gives you the architecture map you need.
+3. **If it exists** → use it:
+   - Read `graphify-out/GRAPH_REPORT.md` before answering architecture or codebase questions
+   - If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files
+   - For cross-module questions prefer `graphify query "<q>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep
+   - After modifying code files, run `graphify update .` to keep the graph current (AST-only, no LLM cost)
+
 ## Project context
 
 Read `AGENTS.md` in the project root at session start. It contains test/lint commands and conventions. Follow them exactly.

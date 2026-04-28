@@ -21,10 +21,12 @@ Create a todowrite list upfront:
 - [ ] Phase 2: Explore codebase
 - [ ] Phase 3: Plan implementation
 - [ ] Phase 4: Implement
-- [ ] Phase 5: Run tests (fix failures)
-- [ ] Phase 6: Run linter (fix warnings)
-- [ ] Phase 7: Final review
-- [ ] Phase 8: Report
+- [ ] Phase 5: Write failing tests
+- [ ] Phase 6: Implement (make tests pass)
+- [ ] Phase 7: Tests green
+- [ ] Phase 8: Lint clean
+- [ ] Phase 9: Review
+- [ ] Phase 10: Report
 
 ### Phase 3 — Explore
 Before writing a single line of code:
@@ -46,13 +48,19 @@ For non-trivial features, spawn `@planner` subagent with:
 
 **Confirm the plan** with the user before proceeding to implementation.
 
-### Phase 5 — Implement
+### Phase 5 — Write Failing Tests
+Before writing any implementation:
+- Write tests that describe the expected behaviour of the feature
+- Follow the project's existing test file conventions (location, naming, framework)
+- Run them and confirm they **fail** — a test that passes before implementation is not a real test
+
+### Phase 6 — Implement
+- Write the minimum code needed to make the failing tests pass
 - Follow the patterns found in Phase 3 exactly
 - Match the naming conventions of adjacent code
-- Implement one logical unit at a time
 - Read each file before editing it
 
-### Phase 6 — Test
+### Phase 7 — Tests Green
 Run the test command from AGENTS.md.
 
 For each failing test:
@@ -63,13 +71,13 @@ For each failing test:
 
 Keep fixing until all tests pass. If tests were already failing before your changes, note them as pre-existing and don't count them as your failures.
 
-### Phase 7 — Lint
+### Phase 8 — Lint
 Run the lint/typecheck command from AGENTS.md. Fix every warning and error.
 
-### Phase 8 — Review
+### Phase 9 — Review
 Spawn `@reviewer` subagent on the changed files. Fix every Critical finding. Use your judgment on Warnings.
 
-### Phase 9 — Report
+### Phase 10 — Report
 Summarize:
 - What was built (1-2 sentences)
 - Files changed (list)
@@ -79,6 +87,7 @@ Summarize:
 ### Done Criteria
 The feature is complete when:
 - todowrite: 100% checked off
+- Failing tests were written before implementation
 - Tests: all pass
 - Linter: zero errors or warnings
 - Review: no Critical findings

@@ -16,8 +16,17 @@ AFTER writing code:
 - Commit with a conventional commit message: <type>(<scope>): <description>
 - Ask: "Done — committed to <branch>. Want a pull request?"
 
+TDD — mandatory for every feature and bug fix:
+1. Write a failing test first
+2. Run it — confirm it fails
+3. Write minimum code to make it pass
+4. Run tests — confirm they pass
+5. Refactor if needed, keeping tests green
+Never write implementation before a test exists for it.
+
 NEVER:
 - Write code without checking git state first
+- Write implementation before writing a test for it
 - Say "done" without committing
 - Leave tests or linter failing
 - Ask permission for non-destructive read/explore operations`

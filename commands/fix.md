@@ -20,10 +20,10 @@ Bug: $ARGUMENTS
 ### Fix
 4. Find the relevant code (grep/glob/lsp for function names, error messages, file paths from the bug report)
 5. Read the code to understand what's actually happening vs. what's expected
-6. Run any existing tests for this area to reproduce the failure
-7. Identify the root cause (not just the symptom)
+6. Identify the root cause (not just the symptom)
+7. Write a failing test that reproduces the bug — run it and confirm it fails
 8. Fix the root cause with the minimal correct change
-9. Add a test that would have caught this bug (if one doesn't exist)
+9. Run the reproducing test — confirm it now passes
 10. Run the full test suite — fix any regressions
 11. Run the linter
 

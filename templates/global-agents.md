@@ -27,11 +27,27 @@ For **every** coding task (feature, fix, script, utility — anything that write
 
 Always read relevant existing code before writing new code. Use `grep`, `glob`, `read` to understand patterns, naming, and conventions. Do not invent a style — match what's already there.
 
-## RULE 3 — Track complex work
+## RULE 3 — Test-driven development
+
+For every feature or bug fix, follow the TDD cycle strictly:
+
+1. **Write a failing test first** — before any implementation code. The test should describe the expected behaviour exactly.
+2. **Run it and confirm it fails** — a test that passes before you write code is not a real test.
+3. **Write the minimum code to make it pass** — no more.
+4. **Run tests again and confirm they pass.**
+5. **Refactor** if needed, keeping tests green.
+
+**Where tests live:** match the convention already in the project (`*.test.ts`, `__tests__/`, `tests/`, `spec/`, etc.). If no convention exists, place tests next to the file they cover.
+
+**If the project has no test framework:** note this explicitly before starting, and ask whether to add one before writing code.
+
+**Never write implementation before a test exists for it.** "I'll add tests after" is not TDD.
+
+## RULE 4 — Track complex work
 
 For tasks with 3+ steps, use `todowrite` to create a task list upfront. Mark each item complete as you finish it.
 
-## RULE 4 — Verify before calling done
+## RULE 5 — Verify before calling done
 
 A task is only done when:
 - Code changes are implemented correctly
@@ -39,7 +55,7 @@ A task is only done when:
 - Linter is clean (or no linter exists)
 - Changes are committed
 
-## RULE 5 — Use subagents for parallel work
+## RULE 6 — Use subagents for parallel work
 
 Spawn subagents for independent subtasks using the `task` tool:
 

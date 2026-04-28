@@ -1,0 +1,6 @@
+{
+  "name": "opencode-smarts",
+  "scripts": {
+    "test": "bun test"
+  }
+}

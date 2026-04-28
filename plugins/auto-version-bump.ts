@@ -13,7 +13,7 @@ const BUMP_RULES: Array<{ pattern: RegExp; bump: "major" | "minor" | "patch" }> 
 // Don't re-bump on version bump commits themselves
 const SKIP_RE = /^chore(\(release\))?:/i
 
-function detectBump(commitMsg: string): "major" | "minor" | "patch" | null {
+export function detectBump(commitMsg: string): "major" | "minor" | "patch" | null {
   if (SKIP_RE.test(commitMsg)) return null
   for (const { pattern, bump } of BUMP_RULES) {
     if (pattern.test(commitMsg)) return bump
@@ -21,7 +21,7 @@ function detectBump(commitMsg: string): "major" | "minor" | "patch" | null {
   return null
 }
 
-function bumpSemver(version: string, bump: "major" | "minor" | "patch"): string {
+export function bumpSemver(version: string, bump: "major" | "minor" | "patch"): string {
   const [maj, min, pat] = version.replace(/^v/, "").split(".").map(Number)
   if ([maj, min, pat].some(isNaN)) return version
   if (bump === "major") return `${maj + 1}.0.0`
@@ -29,14 +29,14 @@ function bumpSemver(version: string, bump: "major" | "minor" | "patch"): string 
   return `${maj}.${min}.${pat + 1}`
 }
 
-type VersionFile =
+export type VersionFile =
   | { kind: "package.json"; path: string; current: string }
   | { kind: "cargo";        path: string; current: string }
   | { kind: "pyproject";    path: string; current: string }
   | { kind: "csproj";       path: string; current: string }
   | { kind: "plain";        path: string; current: string }
 
-async function findVersionFile(dir: string): Promise<VersionFile | null> {
+export async function findVersionFile(dir: string): Promise<VersionFile | null> {
   // package.json
   try {
     const p = path.join(dir, "package.json")
@@ -82,7 +82,7 @@ async function findVersionFile(dir: string): Promise<VersionFile | null> {
   return null
 }
 
-async function applyBump(file: VersionFile, newVersion: string): Promise<void> {
+export async function applyBump(file: VersionFile, newVersion: string): Promise<void> {
   if (file.kind === "package.json") {
     const pkg = JSON.parse(await readFile(file.path, "utf-8"))
     pkg.version = newVersion

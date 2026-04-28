@@ -483,6 +483,7 @@ const tui: TuiPlugin = async (api) => {
 
    // Register sidebar slot
    api.slots.register({
+     order: 1000,
      slots: {
        sidebar_content(ctx, value) {
          const data = recommendations()

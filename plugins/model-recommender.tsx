@@ -287,10 +287,13 @@ function formatModelName(name: string, maxLen: number = 30): string {
 // ─── TUI Components ──────────────────────────────────────────────────────────
 
 function ModelCard(props: { model: ModelInfo; label: string; isFree?: boolean; api: any }) {
+  const borderColor = props.isFree ? props.api.theme.current.success : props.api.theme.current.primary
   return (
-    <div style={{ margin_bottom: "8px", padding: "6px", border_left: "2px solid", border_color: props.isFree ? props.api.theme.current.success : props.api.theme.current.primary }}>
+    <>
       <text fg={props.api.theme.current.text} bold>{formatModelName(props.model.name)}</text>
       <text fg={props.api.theme.current.textMuted}> ({props.model.creator})</text>
+      {"\n"}
+      <text fg={borderColor}>───────────────────────────────────────</text>
       {"\n"}
       <text fg={props.api.theme.current.textMuted}>
         {props.label}: {formatPrice(props.model.blended_price)}/1M
@@ -305,7 +308,8 @@ function ModelCard(props: { model: ModelInfo; label: string; isFree?: boolean; a
           <text fg={props.api.theme.current.accent}>OpenRouter: {props.model.provider_model_id}</text>
         </>
       )}
-    </div>
+      {"\n"}
+    </>
   )
 }
 
@@ -326,7 +330,7 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
   })
 
   return (
-    <div style={{ padding: "8px" }}>
+    <>
       <text fg={props.api.theme.current.primary} bold>Model Recommendations</text>
       {"\n"}
       <text fg={props.api.theme.current.textMuted} size="small">Updated: {lastUpdated()}</text>
@@ -380,7 +384,7 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
           <text fg={props.api.theme.current.error} size="small">Error: {props.data.error}</text>
         </>
       )}
-    </div>
+    </>
   )
 }
 
@@ -461,22 +465,22 @@ const tui: TuiPlugin = async (api) => {
     clearInterval(timer)
   })
 
-  // Register sidebar slot
-  api.slots.register({
-    slots: {
-      sidebar_content(ctx, value) {
-        const data = recommendations()
-        if (!data) {
-          return (
-            <div style={{ padding: "8px" }}>
-              <text fg={api.theme.current.textMuted}>Loading model recommendations...</text>
-            </div>
-          )
-        }
-        return <RecommendationsPanel data={data} api={api} />
-      },
-    },
-  })
+   // Register sidebar slot
+   api.slots.register({
+     slots: {
+       sidebar_content(ctx, value) {
+         const data = recommendations()
+         if (!data) {
+           return (
+             <>
+               <text fg={api.theme.current.textMuted}>Loading model recommendations...</text>
+             </>
+           )
+         }
+         return <RecommendationsPanel data={data} api={api} />
+       },
+     },
+   })
 
   // Also register a command to manually refresh
   api.command.register(() => [

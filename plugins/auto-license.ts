@@ -1,83 +1,38 @@
 import { readFile, writeFile, access } from "fs/promises"
 import path from "path"
-import { appendFileSync } from "fs"
-
-// Debug log file
-const DEBUG_LOG = "/tmp/auto-license-debug.log"
-
-function debugLog(...args: any[]) {
-  try {
-    appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] ${args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" ")}\n`)
-  } catch {}
-}
-
-// Clear log on load
-try { writeFile(DEBUG_LOG, "") } catch {}
 
 export default {
   id: "auto-license",
   server: async ({ worktree }: { worktree: string }) => {
-    debugLog("Plugin loaded, worktree:", worktree)
     return {
       event: async ({ event }: { event: any }) => {
-        debugLog("Event received:", event.type, "properties:", JSON.stringify(event.properties))
         // Only handle session.created events
         if (event.type !== "session.created") return;
 
         // Get session info from event properties
         const session = event.properties?.info as { parentID?: string; directory?: string }
-        debugLog("Session created, parentID:", session?.parentID, "directory:", session?.directory)
         
         // Only run for top-level sessions, not subagents
-        if (session?.parentID) {
-          debugLog("Skipping - subagent session")
-          return
-        }
+        if (session?.parentID) return;
         
         // Use directory from session event (correct), fallback to worktree
         const projectDir = session?.directory || worktree
-        debugLog("Running ensureGpl3License for directory:", projectDir)
-        await ensureGpl3License(projectDir)
-        debugLog("ensureGpl3License completed")
-      },
-    }
-  },
-}
         
-        debugLog("Running ensureGpl3License for worktree:", worktree)
-        await ensureGpl3License(worktree)
-        debugLog("ensureGpl3License completed")
+        // Check if LICENSE already exists
+        const licensePath = path.join(projectDir, "LICENSE")
+        const existing = await readFile(licensePath, "utf-8").catch(() => "")
+        
+        // If LICENSE file already exists and contains GPL3, don't touch
+        if (existing.includes("GNU GENERAL PUBLIC LICENSE")) return;
+        
+        // If LICENSE file exists with different content (another license), don't touch
+        if (existing.trim() !== "") return;
+        
+        // No LICENSE file or empty - create GPL3
+        await writeFile(licensePath, GPL3_TEXT, "utf-8")
       },
     }
   },
-}
-
-// ─── helpers ────────────────────────────────────────────────────────────────
-
-async function exists(p: string) {
-  try { await access(p); return true } catch { return false }
-}
-
-async function readText(p: string) {
-  try { return await readFile(p, "utf-8") } catch { return "" }
-}
-
-// ─── main ───────────────────────────────────────────────────────────────────
-
-async function ensureGpl3License(worktree: string) {
-  if (!worktree) return
-
-  const licensePath = path.join(worktree, "LICENSE")
-  const existing = await readText(licensePath)
-
-  // If LICENSE file already exists and contains GPL3, don't touch
-  if (existing.includes("GNU GENERAL PUBLIC LICENSE")) return
-
-  // If LICENSE file exists with different content (another license), don't touch
-  if (existing.trim() !== "") return
-
-  // No LICENSE file or empty - create GPL3
-  await writeFile(licensePath, GPL3_TEXT, "utf-8")
 }
 
 // ─── GPLv3 license text ─────────────────────────────────────────────────────
@@ -653,8 +608,8 @@ be similar in spirit to the present version, but may differ in detail to
 address new problems or concerns.
 
   Each version is given a distinguishing version number.  If the
-Program specifies that a certain numbered version of the GNU General
-Public License "or any later version" applies to it, you have the
+Program specifies that a certain numbered version of the GNU General Public
+License "or any later version" applies to it, you have the
 option of following the terms and conditions either of that numbered
 version or of any later version published by the Free Software
 Foundation.  If the Program does not specify a version number of the

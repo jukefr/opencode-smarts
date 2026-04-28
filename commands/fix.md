@@ -1,19 +1,43 @@
 ---
-description: Fix a bug completely — diagnoses root cause, implements fix, and verifies
+description: Fix a bug with git flow — branches, diagnoses, fixes, commits, and offers a PR
 agent: build
 ---
 
-Fix the following bug completely. Do not stop until the fix is verified to work.
+Fix the following bug completely from a new git branch to a conventional commit.
 
 Bug: $ARGUMENTS
 
 ## Steps:
-1. Understand the bug — find the relevant code with grep/glob/lsp, read it
-2. Reproduce the failure — run the relevant test or trace the code path mentally
-3. Identify the root cause (not just the symptom)
-4. Fix the root cause with the minimal correct change
-5. Run the full test suite — fix any regressions
-6. Run the linter
-7. Report: what was wrong, what changed, how the fix was verified
 
-Do not mask errors with try/catch. Do not fix the symptom and leave the root cause. If tests were failing before, note which ones were pre-existing.
+### Git setup
+1. Run `git branch --show-current` to check the current branch
+2. If on `main`, `master`, or `develop`: create and switch to a fix branch
+   - Slugify the bug description (lowercase, hyphens, max 40 chars)
+   - `git checkout -b fix/<slug>`
+   - Example: "login form doesn't show validation errors" → `fix/login-form-validation-errors`
+3. If already on a feature/fix branch, continue on it
+
+### Fix
+4. Find the relevant code (grep/glob/lsp for function names, error messages, file paths from the bug report)
+5. Read the code to understand what's actually happening vs. what's expected
+6. Run any existing tests for this area to reproduce the failure
+7. Identify the root cause (not just the symptom)
+8. Fix the root cause with the minimal correct change
+9. Add a test that would have caught this bug (if one doesn't exist)
+10. Run the full test suite — fix any regressions
+11. Run the linter
+
+### Commit
+12. Run `git diff --stat` to review what changed
+13. Stage all changes: `git add -A`
+14. Write a conventional commit:
+    - Format: `fix(<scope>): <description in imperative mood>`
+    - Example: `fix(auth): show validation errors on login form submit`
+    - Keep under 72 characters
+15. Commit: `git commit -m "<message>"`
+
+### Wrap-up
+16. Use the `question` tool to ask: "Bug fixed on branch `<branch-name>`. Create a pull request?"
+    - Options: "Yes, create PR now" / "No, I'll do it later"
+17. If yes: run the `/pr` workflow (push + `gh pr create`)
+18. Report: branch name, commit hash, root cause, what changed, how it was verified

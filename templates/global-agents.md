@@ -48,11 +48,19 @@ At session start, check for `AGENTS.md` in the project root. It contains:
 - Architecture notes and coding conventions — follow them exactly
 - Module-specific context files
 
-## Git Standards
-- Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
-- Never force-push to `main` or `master`
-- Check `git status` and `git diff` before committing
-- Run tests before committing
+## Git Workflow
+When implementing a feature or fix:
+1. **Branch first** — if on `main`/`master`/`develop`, create a branch before touching any files
+   - Features: `feature/<slug>` (e.g. `feature/add-user-pagination`)
+   - Fixes: `fix/<slug>` (e.g. `fix/login-validation-errors`)
+2. **Implement and verify** — tests pass, linter clean
+3. **Commit** — conventional commit format: `feat(<scope>): <imperative description>`
+   - Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
+   - Under 72 characters
+   - `git add -A && git commit -m "<message>"`
+4. **Offer a PR** — use the `question` tool to ask if the user wants a pull request
+
+Never force-push to `main` or `master`. Never commit without running tests first.
 
 ## Error Recovery
 When something fails: read the error message carefully, find the root cause (not just the symptom), fix it, and verify the fix works. Don't give up after one failure. Don't mask errors with try/catch unless that's genuinely the right approach.

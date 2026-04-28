@@ -243,7 +243,7 @@ function pickRecommendations(models: ModelInfo[]): RecommendationData {
   free.sort((a, b) => scoreBalanced(b) - scoreBalanced(a))
 
   const paid = filtered.filter(
-    (m) => !isFreeModel(m) && m.blended_price !== null
+    (m) => !isFreeModel(m) && m.blended_price !== null && m.blended_price > 0
   )
   const cheapestQualityPaid = [...paid].sort((a, b) => {
     const priceA = a.blended_price ?? 10_000.0
@@ -280,18 +280,9 @@ function formatModelName(name: string, maxLen: number = 25): string {
   return name.slice(0, maxLen - 3) + "..."
 }
 
-// ─── Formatting Helpers ──────────────────────────────────────────────────────
+// ─── Recommendations Panel ───────────────────────────────────────────────────
 
-function formatPrice(price: number | null): string {
-  if (price === null) return "N/A"
-  if (price === 0) return "$0"
-  return `$${price.toFixed(3)}`
-}
-
-function formatModelName(name: string, maxLen: number = 25): string {
-  if (name.length <= maxLen) return name
-  return name.slice(0, maxLen - 3) + "..."
-}
+function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
   const bestFree = createMemo(() => {
     const free = props.data.free_candidates
     return free.length > 0 ? free[0] : null
@@ -318,13 +309,47 @@ function formatModelName(name: string, maxLen: number = 25): string {
   })
 
   // Helper to format a single model line
-  const formatModelLine = (m: ModelInfo, priceLabel: string) => {
+  const formatModelLine = (m: ModelInfo) => {
     const nameCreator = `${formatModelName(m.name, 24)} (${formatModelName(m.creator, 10)})`
     const price = formatPrice(m.blended_price)
     const c = m.coding?.toFixed(0) ?? "N/A"
     const i = m.intelligence?.toFixed(0) ?? "N/A"
     return `${nameCreator} ${price}/1M | C:${c} | I:${i}`
   }
+
+  return (
+    <>
+      <text fg={props.api.theme.current.primary} bold>Model Recs • {lastUpdated()}</text>
+
+      {/* Best Free */}
+      <text>{"\n"}</text>
+      <text fg={props.api.theme.current.success} bold>★ Best Free</text>
+      {bestFree() && (
+        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestFree()!)}</text>
+      )}
+      {secondFree() && (
+        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondFree()!)}</text>
+      )}
+
+      {/* Best Paid */}
+      <text>{"\n"}</text>
+      <text fg={props.api.theme.current.warning} bold>★ Best Paid</text>
+      {bestPaid() && (
+        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestPaid()!)}</text>
+      )}
+      {secondPaid() && (
+        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondPaid()!)}</text>
+      )}
+
+      {props.data.error && (
+        <>
+          <text>{"\n"}</text>
+          <text fg={props.api.theme.current.error} size="small">⚠ {props.data.error}</text>
+        </>
+      )}
+    </>
+  )
+}
 
   return (
     <>

@@ -290,16 +290,8 @@ function ModelCard(props: { model: ModelInfo; label: string; isFree?: boolean; a
       <text fg={props.api.theme.current.text} bold>{nameCreator}</text>
       <text fg={borderColor}>────────────────</text>
       <text fg={props.api.theme.current.textMuted}>
-        {props.label}: {formatPrice(props.model.blended_price)}/1M
-        {" | "}
-        C:{props.model.coding?.toFixed(0) ?? "N/A"}
-        {" | "}
-        I:{props.model.intelligence?.toFixed(0) ?? "N/A"}
+        {props.label}: {formatPrice(props.model.blended_price)}/1M | C:{props.model.coding?.toFixed(0) ?? "N/A"} | I:{props.model.intelligence?.toFixed(0) ?? "N/A"}
       </text>
-      {props.model.provider_model_id && (
-        <text fg={props.api.theme.current.accent} size="small">  {props.model.provider_model_id}</text>
-      )}
-      <text>{"\n"}</text>
     </>
   )
 }
@@ -332,11 +324,10 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
 
   return (
     <>
-      <text fg={props.api.theme.current.primary} bold>Model Recommendations</text>
-      <text fg={props.api.theme.current.textMuted} size="small">Updated: {lastUpdated()}</text>
+      <text fg={props.api.theme.current.primary} bold>Model Recs • {lastUpdated()}</text>
       <text>{"\n"}</text>
 
-      {/* Best Free Model */}
+      {/* Best Free */}
       <text fg={props.api.theme.current.success} bold>★ Best Free</text>
       {bestFree() ? (
         <ModelCard model={bestFree()!} label="Free" isFree={true} api={props.api} />
@@ -346,10 +337,10 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
       {secondFree() && (
         <text fg={props.api.theme.current.textMuted} size="small">  alt: {formatModelName(secondFree()!.name, 22)}</text>
       )}
-      <text>{"\n"}</text>
 
-      {/* Best Paid Model */}
-      <text fg={props.api.theme.current.warning} bold>★ Best Paid (≤$0.50/1M)</text>
+      {/* Best Paid */}
+      <text>{"\n"}</text>
+      <text fg={props.api.theme.current.warning} bold>★ Best Paid</text>
       {bestPaid() ? (
         <ModelCard model={bestPaid()!} label="Paid" api={props.api} />
       ) : (

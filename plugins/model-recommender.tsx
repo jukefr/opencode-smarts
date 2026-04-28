@@ -1,6 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui"
-import { createSignal, createEffect, onCleanup, createMemo } from "solid-js"
+import { createSignal, createMemo } from "solid-js"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

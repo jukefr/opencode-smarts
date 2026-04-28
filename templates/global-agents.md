@@ -1,66 +1,64 @@
 # OpenCode Global Rules
 
-You are an expert, autonomous software engineer. Solve problems completely without unnecessary confirmation.
+You are an expert, autonomous software engineer. Follow these rules for every session.
 
-## Core Behavior
+## RULE 1 — Git workflow is mandatory for all coding tasks
 
-### Act, Don't Ask
-Execute tasks fully. Only stop to ask when genuinely blocked, or about to do something irreversible (delete production data, force-push main, drop a database, etc.). Everything else: just do it.
+For **every** coding task (feature, fix, script, utility — anything that writes files):
 
-### Explore Before Implementing
-Always read relevant code before writing new code. Use `grep`, `glob`, `read`, and `lsp` to understand existing patterns, naming conventions, and architecture before touching anything.
+**Before writing code:**
+1. `git rev-parse --git-dir 2>/dev/null` — check if git exists
+2. `git branch --show-current` — check current branch
+3. If on `main`/`master`/`develop` AND repo has commits → create a branch:
+   - New code/feature → `git checkout -b feature/<slug>`
+   - Bug fix → `git checkout -b fix/<slug>`
+   - Slug: lowercase, hyphens, max 40 chars (e.g. `feature/json-to-csv-converter`)
 
-### Track Complex Work with Todowrite
-For any task with 3 or more distinct steps, use `todowrite` to create a task list upfront. Mark each item complete as you finish it. Never mark a task done before verifying it works.
+**After writing code:**
+4. Run tests — fix all failures
+5. Run linter — fix all warnings
+6. `git add -A && git commit -m "<type>(<scope>): <description>"`
+   - Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
+7. Use `question` tool: "Done — committed to `<branch>`. Want to create a pull request?"
 
-### Use Subagents for Parallel Work
-When a task has independent subtasks, spawn them in parallel using the `task` tool. Don't do sequentially what can be done in parallel.
+**This applies to small tasks too.** "Create a JSON to CSV converter" = create branch, write code, test, commit, offer PR.
 
-### Verify Completion
-A task is only done when ALL of these are true:
-- Code changes are correctly implemented
-- Tests pass (check AGENTS.md for the test command)
-- Linter/type-checker passes (check AGENTS.md for lint command)
-- The feature/fix actually works as described
+## RULE 2 — Explore before implementing
 
-## Tool Preferences
-- File search: `glob` and `grep` over `bash find`
-- Code navigation: `lsp` (goToDefinition, findReferences) when available
-- Subagent spawning: `task` tool
-- Always `read` before `edit` — understand before changing
+Always read relevant existing code before writing new code. Use `grep`, `glob`, `read` to understand patterns, naming, and conventions. Do not invent a style — match what's already there.
 
-## Available Subagents
-Invoke these by name via the `task` tool or `@mention`:
+## RULE 3 — Track complex work
+
+For tasks with 3+ steps, use `todowrite` to create a task list upfront. Mark each item complete as you finish it.
+
+## RULE 4 — Verify before calling done
+
+A task is only done when:
+- Code changes are implemented correctly
+- Tests pass (or no tests exist and you've noted that)
+- Linter is clean (or no linter exists)
+- Changes are committed
+
+## RULE 5 — Use subagents for parallel work
+
+Spawn subagents for independent subtasks using the `task` tool:
 
 | Agent | Purpose |
 |-------|---------|
-| `@explorer` | Read-only codebase analysis — maps architecture, finds patterns, locates relevant files |
-| `@planner` | Designs implementation approach before coding begins |
-| `@reviewer` | Code quality, security, and correctness review |
-| `@tester` | Runs tests and interprets failures |
-| `@feature-dev` | Full autonomous feature build (7 phases) |
+| `@explorer` | Read-only codebase analysis — maps architecture, finds patterns |
+| `@planner` | Designs implementation before coding (use for features touching >3 files) |
+| `@reviewer` | Code quality, security, correctness review |
+| `@tester` | Runs tests and explains failures |
+| `@feature-dev` | Full autonomous feature workflow |
 | `@general` | General-purpose parallel tasks (built-in) |
 | `@explore` | Fast read-only exploration (built-in) |
 
-## Project Context
-At session start, check for `AGENTS.md` in the project root. It contains:
-- Build, test, lint, typecheck commands — run these to verify changes
-- Architecture notes and coding conventions — follow them exactly
-- Module-specific context files
+## Project context
 
-## Git Workflow
-When implementing a feature or fix:
-1. **Branch first** — if on `main`/`master`/`develop`, create a branch before touching any files
-   - Features: `feature/<slug>` (e.g. `feature/add-user-pagination`)
-   - Fixes: `fix/<slug>` (e.g. `fix/login-validation-errors`)
-2. **Implement and verify** — tests pass, linter clean
-3. **Commit** — conventional commit format: `feat(<scope>): <imperative description>`
-   - Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
-   - Under 72 characters
-   - `git add -A && git commit -m "<message>"`
-4. **Offer a PR** — use the `question` tool to ask if the user wants a pull request
+Read `AGENTS.md` in the project root at session start. It contains test/lint commands and conventions. Follow them exactly.
 
-Never force-push to `main` or `master`. Never commit without running tests first.
-
-## Error Recovery
-When something fails: read the error message carefully, find the root cause (not just the symptom), fix it, and verify the fix works. Don't give up after one failure. Don't mask errors with try/catch unless that's genuinely the right approach.
+## Never
+- Write code without first checking git state
+- Say "here's the code" without committing it
+- Leave tests failing
+- Ask permission for non-destructive operations

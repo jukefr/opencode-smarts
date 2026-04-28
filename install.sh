@@ -118,7 +118,11 @@ install_engram() {
 }
 
 if install_engram; then
-  echo "✓ engram ready (MCP config provided via opencode.json)"
+  if engram setup opencode; then
+    echo "✓ engram plugin installed (auto-starts server, injects memory into every session)"
+  else
+    echo "⚠ engram setup opencode failed — run it manually after install"
+  fi
 else
   echo "⚠ Could not install engram automatically"
   echo "  Install from: https://github.com/Gentleman-Programming/engram"

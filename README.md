@@ -11,6 +11,8 @@ Installs a global config pack into `~/.config/opencode/` that gives opencode:
 - **Auto GPL3 license** (plugin) — on every session start, automatically adds the GPLv3 license file if no other license exists in the repository
 - **Model recommender** (TUI plugin) — sidebar panel showing the best free and best paid models based on live data from Artificial Analysis, with a 4-hour local cache to avoid rate limits. Score is a composite of coding ability, intelligence, price, and speed
 - **Free OpenRouter models** (plugin) — automatically adds all `:free` OpenRouter models to the model picker, no API key required
+- **Rule reinforcement** (plugin) — re-injects the critical git/test/commit rules into the system prompt on every LLM call and into the compaction prompt, so the agent keeps following them even deep into long sessions
+- **Auto version bump** (plugin) — after every git commit the agent makes, checks the commit message for semantic type (`feat` → minor, `fix`/`perf`/`refactor` → patch, breaking change → major) and automatically bumps the version in `package.json`, `Cargo.toml`, `pyproject.toml`, or a `VERSION` file, then commits the change
 - **Custom primary agent** (`build`) — overrides the default build agent with explicit step-by-step instructions for the full git workflow
 - **Specialized subagents** — `@explorer`, `@planner`, `@reviewer`, `@tester`, `@code-explorer`, `@code-reviewer` that get spawned automatically for parallel work
 - **Slash commands** — `/feature`, `/fix`, `/review`, `/pr`, `/explore`, `/set-aa-key`, `/refresh-models`
@@ -185,7 +187,9 @@ opencode-smarts/
     ├── auto-agents.ts          # Session-start AGENTS.md auto-detection
     ├── auto-license.ts         # Session-start GPLv3 license auto-creation
     ├── model-recommender.tsx   # TUI sidebar: best free + paid model recommendations
-    └── openrouter-models-fix.ts # Adds all free OpenRouter models to the model picker
+    ├── openrouter-models-fix.ts # Adds all free OpenRouter models to the model picker
+    ├── rule-reinforcement.ts   # Re-injects critical rules on every LLM call + compaction
+    └── auto-version-bump.ts   # Bumps version file after each semantic commit
 ```
 
 ## Uninstall

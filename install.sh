@@ -118,7 +118,7 @@ install_engram() {
 }
 
 if install_engram; then
-  if engram setup opencode; then
+  if engram setup opencode &>/dev/null; then
     echo "✓ engram plugin installed (auto-starts server, injects memory into every session)"
   else
     echo "⚠ engram setup opencode failed — run it manually after install"
@@ -156,7 +156,7 @@ install_graphify() {
 
 if install_graphify; then
   # Run graphify install to register the skill file, then remove its dumb plugin
-  graphify install --platform opencode 2>/dev/null || true
+  graphify install --platform opencode &>/dev/null || true
   rm -f "$OPENCODE_CONFIG_DIR/plugins/graphify.js" 2>/dev/null || true
   rm -rf .opencode/ 2>/dev/null || true
   echo "✓ graphify ready (skill registered, dumb plugin removed)"

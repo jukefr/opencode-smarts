@@ -112,6 +112,7 @@ async function detectProject(worktree: string): Promise<ProjectInfo> {
   await detectRust(worktree, info)
   await detectGo(worktree, info)
   await detectPython(worktree, info)
+  await detectCSharp(worktree, info)
   await detectMakefile(worktree, info)
 
   info.stack = [...new Set(info.stack)]
@@ -125,6 +126,26 @@ async function detectNode(worktree: string, info: ProjectInfo) {
   info.hasAnything = true
   if (pkg.name) info.name = pkg.name
 
+  // Detect package manager from lock files
+  const hasBunLock = await exists(path.join(worktree, "bun.lockb")) || await exists(path.join(worktree, "bun.lock"))
+  const hasPnpm    = await exists(path.join(worktree, "pnpm-lock.yaml"))
+  const hasYarn    = await exists(path.join(worktree, "yarn.lock"))
+  const pm = hasBunLock ? "bun" : hasPnpm ? "pnpm" : hasYarn ? "yarn" : "npm"
+
+  // Map scripts to commands
+  const scripts = pkg.scripts ?? {}
+  const run = (name: string) => scripts[name] ? `${pm} run ${name}` : ""
+
+  info.commands.dev      = run("dev") || run("start") || run("serve")
+  info.commands.build    = run("build")
+  info.commands.lint     = run("lint")
+  info.commands.typecheck = run("typecheck") || run("type-check") || run("tsc")
+  // bun has a built-in test runner; prefer explicit script if defined
+  info.commands.test = scripts.test
+    ? `${pm} run test`
+    : pm === "bun" ? "bun test" : ""
+
+  // Stack detection
   const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) }
   const has = (d: string) => d in deps
 
@@ -134,7 +155,7 @@ async function detectNode(worktree: string, info: ProjectInfo) {
   if (has("next"))            info.stack.push("Next.js")
   if (has("vue"))             info.stack.push("Vue")
   if (has("svelte"))          info.stack.push("Svelte")
-  if (has("astro"))            info.stack.push("Astro")
+  if (has("astro"))           info.stack.push("Astro")
   if (has("solid-js"))        info.stack.push("SolidJS")
   if (has("hono"))            info.stack.push("Hono")
   if (has("express"))         info.stack.push("Express")
@@ -152,6 +173,9 @@ async function detectRust(worktree: string, info: ProjectInfo) {
 
   info.hasAnything = true
   info.stack.push("Rust")
+  info.commands.build = "cargo build"
+  info.commands.test  = "cargo test"
+  info.commands.lint  = "cargo clippy"
 }
 
 async function detectGo(worktree: string, info: ProjectInfo) {
@@ -159,6 +183,9 @@ async function detectGo(worktree: string, info: ProjectInfo) {
 
   info.hasAnything = true
   info.stack.push("Go")
+  info.commands.build = "go build ./..."
+  info.commands.test  = "go test ./..."
+  info.commands.lint  = "golangci-lint run"
 }
 
 async function detectPython(worktree: string, info: ProjectInfo) {
@@ -170,6 +197,44 @@ async function detectPython(worktree: string, info: ProjectInfo) {
 
   info.hasAnything = true
   info.stack.push("Python")
+
+  const pyproject = hasPyproject ? await readText(path.join(worktree, "pyproject.toml")) : ""
+  const hasUv     = await exists(path.join(worktree, "uv.lock")) || pyproject.includes("[tool.uv]")
+  const hasPoetry = pyproject.includes("[tool.poetry]")
+  const prefix    = hasUv ? "uv run " : hasPoetry ? "poetry run " : ""
+
+  const hasRuff   = pyproject.includes("[tool.ruff]") || pyproject.includes("ruff")
+  const hasMypy   = pyproject.includes("[tool.mypy]") || pyproject.includes("mypy")
+
+  info.commands.test     = `${prefix}pytest`
+  info.commands.lint     = hasRuff ? `${prefix}ruff check .` : ""
+  info.commands.typecheck = hasMypy ? `${prefix}mypy .` : ""
+}
+
+async function detectCSharp(worktree: string, info: ProjectInfo) {
+  const { readdir } = await import("fs/promises")
+  const files = await readdir(worktree).catch(() => [] as string[])
+  const csproj = files.find(f => f.endsWith(".csproj"))
+  const hasSln  = files.some(f => f.endsWith(".sln"))
+
+  if (!csproj && !hasSln) return
+
+  info.hasAnything = true
+  info.stack.push("C#")
+
+  if (csproj) {
+    const content = await readText(path.join(worktree, csproj))
+    const has = (s: string) => content.includes(s)
+    if (has("Microsoft.AspNetCore"))          info.stack.push("ASP.NET Core")
+    if (has("Microsoft.EntityFrameworkCore")) info.stack.push("Entity Framework Core")
+    if (has("Microsoft.AspNetCore.Components")) info.stack.push("Blazor")
+    if (has("Microsoft.Maui"))               info.stack.push("MAUI")
+  }
+
+  info.commands.build = "dotnet build"
+  info.commands.test  = "dotnet test"
+  info.commands.lint  = "dotnet format --verify-no-changes"
+  info.commands.dev   = "dotnet run"
 }
 
 async function detectMakefile(worktree: string, info: ProjectInfo) {
@@ -177,6 +242,12 @@ async function detectMakefile(worktree: string, info: ProjectInfo) {
   if (!content) return
 
   info.hasAnything = true
+  const hasTarget = (t: string) => new RegExp(`^${t}\\s*:`, "m").test(content)
+  // Only fill gaps not already covered by a language-specific detector
+  if (!info.commands.dev   && hasTarget("dev"))   info.commands.dev   = "make dev"
+  if (!info.commands.build && hasTarget("build")) info.commands.build = "make build"
+  if (!info.commands.test  && hasTarget("test"))  info.commands.test  = "make test"
+  if (!info.commands.lint  && hasTarget("lint"))  info.commands.lint  = "make lint"
 }
 
 // ─── render ─────────────────────────────────────────────────────────────────

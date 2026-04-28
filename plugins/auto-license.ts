@@ -33,6 +33,22 @@ export default {
         const existing = await readFile(licensePath, "utf-8").catch(() => "")
         if (existing.trim() !== "") return
 
+        // Skip if package.json declares a non-GPL license
+        const pkg = await readFile(path.join(projectDir, "package.json"), "utf-8").catch(() => "")
+        if (pkg) {
+          try {
+            const { license } = JSON.parse(pkg)
+            if (license && !license.toLowerCase().includes("gpl")) return
+          } catch {}
+        }
+
+        // Skip if Cargo.toml declares a non-GPL license
+        const cargo = await readFile(path.join(projectDir, "Cargo.toml"), "utf-8").catch(() => "")
+        if (cargo) {
+          const m = cargo.match(/^license\s*=\s*"([^"]+)"/m)
+          if (m && !m[1].toLowerCase().includes("gpl")) return
+        }
+
         const text = await fetchLicense()
         if (!text) return
 

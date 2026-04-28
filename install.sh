@@ -11,6 +11,24 @@ PLUGINS_DIR="$OPENCODE_CONFIG_DIR/plugins"
 echo "Installing opencode-smarts..."
 echo ""
 
+# Kill any running opencode processes to force reload of plugins
+if ps aux | grep -v grep | grep -q opencode; then
+  echo "Stopping running opencode processes..."
+  pkill -f opencode || true
+  sleep 2
+  echo "✓ OpenCode processes stopped"
+fi
+
+# Clear opencode cache to ensure fresh plugin loading
+if [ -d "$HOME/.cache/opencode" ]; then
+  echo "Clearing opencode cache..."
+  rm -rf "$HOME/.cache/opencode"
+  echo "✓ Cache cleared"
+fi
+
+# Clear debug logs
+rm -f /tmp/auto-license-debug.log /tmp/auto-agents-debug.log 2>/dev/null || true
+
 # Create config dirs
 mkdir -p "$AGENTS_DIR" "$SKILLS_DIR" "$COMMANDS_DIR" "$PLUGINS_DIR"
 

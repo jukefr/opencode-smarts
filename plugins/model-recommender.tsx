@@ -280,23 +280,18 @@ function formatModelName(name: string, maxLen: number = 25): string {
   return name.slice(0, maxLen - 3) + "..."
 }
 
-// ─── TUI Components ──────────────────────────────────────────────────────────
+// ─── Formatting Helpers ──────────────────────────────────────────────────────
 
-function ModelCard(props: { model: ModelInfo; label: string; isFree?: boolean; api: any }) {
-  const borderColor = props.isFree ? props.api.theme.current.success : props.api.theme.current.primary
-  const nameCreator = `${formatModelName(props.model.name, 22)} (${formatModelName(props.model.creator, 12)})`
-  return (
-    <>
-      <text fg={props.api.theme.current.text} bold>{nameCreator}</text>
-      <text fg={borderColor}>────────────────</text>
-      <text fg={props.api.theme.current.textMuted}>
-        {props.label}: {formatPrice(props.model.blended_price)}/1M | C:{props.model.coding?.toFixed(0) ?? "N/A"} | I:{props.model.intelligence?.toFixed(0) ?? "N/A"}
-      </text>
-    </>
-  )
+function formatPrice(price: number | null): string {
+  if (price === null) return "N/A"
+  if (price === 0) return "$0"
+  return `$${price.toFixed(3)}`
 }
 
-function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
+function formatModelName(name: string, maxLen: number = 25): string {
+  if (name.length <= maxLen) return name
+  return name.slice(0, maxLen - 3) + "..."
+}
   const bestFree = createMemo(() => {
     const free = props.data.free_candidates
     return free.length > 0 ? free[0] : null
@@ -322,32 +317,37 @@ function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   })
 
+  // Helper to format a single model line
+  const formatModelLine = (m: ModelInfo, priceLabel: string) => {
+    const nameCreator = `${formatModelName(m.name, 24)} (${formatModelName(m.creator, 10)})`
+    const price = formatPrice(m.blended_price)
+    const c = m.coding?.toFixed(0) ?? "N/A"
+    const i = m.intelligence?.toFixed(0) ?? "N/A"
+    return `${nameCreator} ${price}/1M | C:${c} | I:${i}`
+  }
+
   return (
     <>
       <text fg={props.api.theme.current.primary} bold>Model Recs • {lastUpdated()}</text>
-      <text>{"\n"}</text>
 
       {/* Best Free */}
+      <text>{"\n"}</text>
       <text fg={props.api.theme.current.success} bold>★ Best Free</text>
-      {bestFree() ? (
-        <ModelCard model={bestFree()!} label="Free" isFree={true} api={props.api} />
-      ) : (
-        <text fg={props.api.theme.current.textMuted}>No free models</text>
+      {bestFree() && (
+        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestFree()!, "Free")}</text>
       )}
       {secondFree() && (
-        <text fg={props.api.theme.current.textMuted} size="small">  alt: {formatModelName(secondFree()!.name, 22)}</text>
+        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondFree()!, "Free")}</text>
       )}
 
       {/* Best Paid */}
       <text>{"\n"}</text>
       <text fg={props.api.theme.current.warning} bold>★ Best Paid</text>
-      {bestPaid() ? (
-        <ModelCard model={bestPaid()!} label="Paid" api={props.api} />
-      ) : (
-        <text fg={props.api.theme.current.textMuted}>No paid models</text>
+      {bestPaid() && (
+        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestPaid()!, "Paid")}</text>
       )}
       {secondPaid() && (
-        <text fg={props.api.theme.current.textMuted} size="small">  alt: {formatModelName(secondPaid()!.name, 22)}</text>
+        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondPaid()!, "Paid")}</text>
       )}
 
       {props.data.error && (

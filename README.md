@@ -9,9 +9,11 @@ Installs a global config pack into `~/.config/opencode/` that gives opencode:
 - **Behavioral rules** (`AGENTS.md`) — the agent explores before implementing, tracks work with `todowrite`, always creates a git branch before writing code, commits with conventional commits, offers a PR when done, and only stops when tests and linters pass
 - **Auto project detection** (plugin) — on every session start, scans the project for `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `Makefile`, etc. and creates/updates a project `AGENTS.md` with the detected stack and commands
 - **Auto GPL3 license** (plugin) — on every session start, automatically adds the GPLv3 license file if no other license exists in the repository
+- **Model recommender** (TUI plugin) — sidebar panel showing the best free and best paid models based on live data from Artificial Analysis, with a 4-hour local cache to avoid rate limits. Score is a composite of coding ability, intelligence, price, and speed
+- **Free OpenRouter models** (plugin) — automatically adds all `:free` OpenRouter models to the model picker, no API key required
 - **Custom primary agent** (`build`) — overrides the default build agent with explicit step-by-step instructions for the full git workflow
-- **Specialized subagents** — `@explorer`, `@planner`, `@reviewer`, `@tester` that get spawned automatically for parallel work
-- **Slash commands** — `/feature`, `/fix`, `/review`, `/pr`, `/explore`
+- **Specialized subagents** — `@explorer`, `@planner`, `@reviewer`, `@tester`, `@code-explorer`, `@code-reviewer` that get spawned automatically for parallel work
+- **Slash commands** — `/feature`, `/fix`, `/review`, `/pr`, `/explore`, `/set-aa-key`, `/refresh-models`
 - **Skills** — reusable instruction sets loaded on demand: `feature-build`, `bug-fix`, `smart-commit`, `smart-pr`, `code-review`
 - **Safe permissions** — blocks `rm -rf`, force-push to main, `DROP TABLE/DATABASE` by default
 - **Context7 MCP** — library docs lookup, enabled by default
@@ -40,6 +42,8 @@ Re-running `./install.sh` is safe — symlinks are updated and `opencode.json` i
 | `/review` | Reviews all changes on the current branch — correctness, security, quality, test coverage |
 | `/pr` | Commits anything uncommitted + `git push` + `gh pr create` with auto-generated description |
 | `/explore <question>` | Spawns `@explorer` to map the codebase and answer the question |
+| `/set-aa-key` | Opens a dialog to enter your Artificial Analysis API key for model recommendations |
+| `/refresh-models` | Force-refreshes model recommendations from Artificial Analysis, bypassing the local cache |
 
 ### Natural language requests
 
@@ -56,8 +60,10 @@ Invoke directly with `@` or they get spawned automatically:
 | Agent | Purpose |
 |-------|---------|
 | `@explorer` | Read-only codebase analysis — maps architecture, finds patterns, locates entry points |
+| `@code-explorer` | Stricter read-only analysis — locked to read/glob/grep/lsp only, no web or bash |
 | `@planner` | Designs implementation plan before coding — files to change, order, interfaces, edge cases |
 | `@reviewer` | Code review — correctness, security, quality, test coverage. Never modifies files |
+| `@code-reviewer` | Stricter code reviewer — launches parallel explore tasks, confidence-scored findings |
 | `@tester` | Runs the test suite and explains each failure with a recommended fix |
 | `@feature-dev` | Full 7-phase autonomous feature implementation |
 | `@ralph-loop` | Iterates until a completion promise is satisfied (max 10 iterations) |
@@ -73,6 +79,20 @@ Loaded on demand by the agent when relevant:
 | `smart-commit` | Generate and create a conventional commit from current changes |
 | `smart-pr` | Push branch and create PR with auto-generated description |
 | `code-review` | Full parallel review across correctness, security, quality, tests |
+
+## Model recommender
+
+The model recommender sidebar shows 4 models: the 2 best free models and the 2 best paid models, ranked by a composite score (coding ability, intelligence, price efficiency, and speed). Each entry shows the model name, price per 1M tokens, and the composite score.
+
+It fetches data from the [Artificial Analysis API](https://artificialanalysis.ai) which requires a free API key. OpenRouter availability data is fetched live on each startup with no key required.
+
+### Setup
+
+1. Get a free API key from [artificialanalysis.ai](https://artificialanalysis.ai)
+2. Either set the environment variable: `export AA_API_KEY=your_key_here`
+3. Or use the in-app command: `/set-aa-key` — opens a dialog, enter the key and press Enter
+
+AA model data is cached locally for 4 hours so reopening opencode repeatedly won't hit rate limits. Use `/refresh-models` to force a fresh fetch.
 
 ## Project setup
 
@@ -112,6 +132,10 @@ Your existing settings (`model`, `provider`, other MCPs, etc.) are untouched.
 
 Reference config is in `opencode.json` in this repo.
 
+### tui.json
+
+The install script creates or updates `~/.config/opencode/tui.json` to register the model recommender TUI plugin. If the file already exists, the plugin entry is appended to the existing `plugin` array.
+
 ### Enabling/disabling Context7
 
 Context7 is enabled by default. To disable:
@@ -130,7 +154,7 @@ When looking up library or framework docs, use the context7 tool.
 
 ```
 opencode-smarts/
-├── install.sh                  # Symlink installer + opencode.json merge
+├── install.sh                  # Symlink installer + opencode.json/tui.json merge
 ├── opencode.json               # Config template (permissions, context7 MCP)
 ├── templates/
 │   ├── global-agents.md        # Global rules → ~/.config/opencode/AGENTS.md
@@ -138,8 +162,10 @@ opencode-smarts/
 ├── agents/
 │   ├── build.md                # Primary agent override — full git workflow
 │   ├── explorer.md             # Read-only codebase analyst
+│   ├── code-explorer.md        # Stricter read-only analyst (locked permissions)
 │   ├── planner.md              # Implementation architect
 │   ├── reviewer.md             # Code reviewer
+│   ├── code-reviewer.md        # Stricter code reviewer (parallel, confidence-scored)
 │   ├── tester.md               # Test runner and failure explainer
 │   ├── feature-dev.md          # Autonomous 7-phase feature developer
 │   └── ralph-loop.md           # Iterative loop agent
@@ -157,7 +183,9 @@ opencode-smarts/
 │   └── code-review/SKILL.md
 └── plugins/
     ├── auto-agents.ts          # Session-start AGENTS.md auto-detection
-    └── auto-license.ts         # Session-start GPLv3 license auto-creation
+    ├── auto-license.ts         # Session-start GPLv3 license auto-creation
+    ├── model-recommender.tsx   # TUI sidebar: best free + paid model recommendations
+    └── openrouter-models-fix.ts # Adds all free OpenRouter models to the model picker
 ```
 
 ## Uninstall
@@ -170,4 +198,4 @@ rm -rf ~/.config/opencode/commands/
 rm -rf ~/.config/opencode/plugins/
 ```
 
-Then manually remove the `permission` and `mcp.context7` blocks from `~/.config/opencode/opencode.json` if you want to revert those too.
+Then manually remove the `permission` and `mcp.context7` blocks from `~/.config/opencode/opencode.json`, and remove the model-recommender entry from `~/.config/opencode/tui.json`.

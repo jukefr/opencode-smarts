@@ -29,11 +29,17 @@ interface RecommendationData {
   error?: string
 }
 
+interface ModelCache {
+  models: ModelInfo[]
+  fetchedAt: number
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const AA_API_URL = "https://artificialanalysis.ai/api/v2/data/llms/models"
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000 // 4 hours — survive testing sessions
 const FETCH_TIMEOUT_MS = 30000
 
 // ─── API Functions ──────────────────────────────────────────────────────────
@@ -283,105 +289,36 @@ function formatModelName(name: string, maxLen: number = 25): string {
 // ─── Recommendations Panel ───────────────────────────────────────────────────
 
 function RecommendationsPanel(props: { data: RecommendationData; api: any }) {
-  const bestFree = createMemo(() => {
-    const free = props.data.free_candidates
-    return free.length > 0 ? free[0] : null
-  })
+  const models = createMemo(() => [
+    ...props.data.free_candidates.slice(0, 2),
+    ...props.data.best_balanced_under_budget.slice(0, 2),
+  ])
 
-  const bestPaid = createMemo(() => {
-    const paid = props.data.best_balanced_under_budget
-    return paid.length > 0 ? paid[0] : null
-  })
-
-  const secondFree = createMemo(() => {
-    const free = props.data.free_candidates
-    return free.length > 1 ? free[1] : null
-  })
-
-  const secondPaid = createMemo(() => {
-    const paid = props.data.best_balanced_under_budget
-    return paid.length > 1 ? paid[1] : null
-  })
-
-  const lastUpdated = createMemo(() => {
-    const d = new Date(props.data.timestamp)
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  })
-
-  // Helper to format a single model line
-  const formatModelLine = (m: ModelInfo) => {
-    const nameCreator = `${formatModelName(m.name, 24)} (${formatModelName(m.creator, 10)})`
-    const price = formatPrice(m.blended_price)
-    const c = m.coding?.toFixed(0) ?? "N/A"
-    const i = m.intelligence?.toFixed(0) ?? "N/A"
-    return `${nameCreator} ${price}/1M | C:${c} | I:${i}`
-  }
-
-  return (
-    <>
-      <text fg={props.api.theme.current.primary} bold>Model Recs • {lastUpdated()}</text>
-
-      {/* Best Free */}
-      <text>{"\n"}</text>
-      <text fg={props.api.theme.current.success} bold>★ Best Free</text>
-      {bestFree() && (
-        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestFree()!)}</text>
-      )}
-      {secondFree() && (
-        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondFree()!)}</text>
-      )}
-
-      {/* Best Paid */}
-      <text>{"\n"}</text>
-      <text fg={props.api.theme.current.warning} bold>★ Best Paid</text>
-      {bestPaid() && (
-        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestPaid()!)}</text>
-      )}
-      {secondPaid() && (
-        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondPaid()!)}</text>
-      )}
-
-      {props.data.error && (
-        <>
-          <text>{"\n"}</text>
-          <text fg={props.api.theme.current.error} size="small">⚠ {props.data.error}</text>
-        </>
-      )}
-    </>
+  const lastUpdated = createMemo(() =>
+    new Date(props.data.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   )
-}
+
+  const theme = () => props.api.theme.current
+  const stripParens = (s: string) => s.replace(/\s*\(.*?\)\s*$/, "").trim()
 
   return (
-    <>
-      <text fg={props.api.theme.current.primary} bold>Model Recs • {lastUpdated()}</text>
-
-      {/* Best Free */}
-      <text>{"\n"}</text>
-      <text fg={props.api.theme.current.success} bold>★ Best Free</text>
-      {bestFree() && (
-        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestFree()!, "Free")}</text>
-      )}
-      {secondFree() && (
-        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondFree()!, "Free")}</text>
-      )}
-
-      {/* Best Paid */}
-      <text>{"\n"}</text>
-      <text fg={props.api.theme.current.warning} bold>★ Best Paid</text>
-      {bestPaid() && (
-        <text fg={props.api.theme.current.text}> {"• "}{formatModelLine(bestPaid()!, "Paid")}</text>
-      )}
-      {secondPaid() && (
-        <text fg={props.api.theme.current.textMuted} size="small">  • {formatModelLine(secondPaid()!, "Paid")}</text>
-      )}
-
+    <box>
+      <text fg={theme().text}><b>Model Recs</b> <span style={{ fg: theme().textMuted }}>{lastUpdated()}</span></text>
+      {models().map((m) => {
+        const name = formatModelName(stripParens(m.name), 20)
+        const price = formatPrice(m.blended_price)
+        const score = scoreBalanced(m).toFixed(0)
+        return (
+          <text fg={theme().text}>
+            {"• "}{name}{" "}
+            <span style={{ fg: theme().textMuted }}>{price} {score}</span>
+          </text>
+        )
+      })}
       {props.data.error && (
-        <>
-          <text>{"\n"}</text>
-          <text fg={props.api.theme.current.error} size="small">⚠ {props.data.error}</text>
-        </>
+        <text fg={theme().error}>⚠ {props.data.error}</text>
       )}
-    </>
+    </box>
   )
 }
 
@@ -392,22 +329,17 @@ const tui: TuiPlugin = async (api) => {
   const [loading, setLoading] = createSignal(false)
   const [apiKey, setApiKey] = createSignal<string | null>(null)
 
-  // Get API key from environment or config
   const getApiKey = (): string | null => {
-    // Check environment variable first
     const envKey = process.env.AA_API_KEY
     if (envKey) return envKey
-
-    // Check plugin config via KV store
     const stored = api.kv.get<string>("aa_api_key", "")
     return stored || null
   }
 
-  // Set and store API key
   const setAndStoreApiKey = (key: string) => {
     api.kv.set("aa_api_key", key)
     setApiKey(key)
-    fetchRecommendations()
+    fetchRecommendations(true)
     api.ui.toast({
       variant: "success",
       title: "API Key Saved",
@@ -415,8 +347,27 @@ const tui: TuiPlugin = async (api) => {
     })
   }
 
-  // Fetch recommendations
-  const fetchRecommendations = async () => {
+  const loadCache = (): ModelCache | null => {
+    const cached = api.kv.get<ModelCache>("aa_model_cache", null)
+    if (!cached || Date.now() - cached.fetchedAt > CACHE_TTL_MS) return null
+    return cached
+  }
+
+  const saveCache = (models: ModelInfo[], fetchedAt: number) => {
+    api.kv.set("aa_model_cache", { models, fetchedAt })
+  }
+
+  // Builds recs from AA models + fresh OR data (OR has no rate limits)
+  const buildRecs = async (models: ModelInfo[], fetchedAt: number): Promise<RecommendationData> => {
+    const orRaw = await fetchOpenRouterModels().catch(() => [] as OpenRouterModel[])
+    if (orRaw.length > 0) {
+      const orLookup = buildOpenRouterLookup(orRaw)
+      attachOpenRouterAvailability(models, orLookup)
+    }
+    return { ...pickRecommendations(models), timestamp: fetchedAt }
+  }
+
+  const fetchRecommendations = async (force = false) => {
     const key = getApiKey()
     if (!key) {
       setRecommendations({
@@ -430,48 +381,54 @@ const tui: TuiPlugin = async (api) => {
       return
     }
 
+    if (!force) {
+      const cached = loadCache()
+      if (cached) {
+        setLoading(true)
+        try {
+          setRecommendations(await buildRecs([...cached.models], cached.fetchedAt))
+        } finally {
+          setLoading(false)
+        }
+        return
+      }
+    }
+
     setLoading(true)
     try {
-      const [rawModels, orRaw] = await Promise.all([
-        fetchModels(key),
-        fetchOpenRouterModels().catch(() => [] as OpenRouterModel[]),
-      ])
-
-      let models = normalize(rawModels)
-
-      // Attach OpenRouter availability if we got the data
-      if (orRaw.length > 0) {
-        const orLookup = buildOpenRouterLookup(orRaw)
-        attachOpenRouterAvailability(models, orLookup)
-      }
-
-      const recs = pickRecommendations(models)
-      setRecommendations(recs)
+      const fetchedAt = Date.now()
+      const rawModels = await fetchModels(key)
+      const models = normalize(rawModels)
+      saveCache(models, fetchedAt)
+      setRecommendations(await buildRecs([...models], fetchedAt))
     } catch (error: any) {
       let errorMsg = error.message || "Failed to fetch recommendations"
-      // Provide helpful message for 401 errors
       if (error.message.includes("401")) {
         errorMsg = "Invalid API key (401). Please check your AA_API_KEY and try again with /set-aa-key"
       }
-      setRecommendations({
-        free_candidates: [],
-        cheapest_quality_paid: [],
-        best_value_under_budget: [],
-        best_balanced_under_budget: [],
-        timestamp: Date.now(),
-        error: errorMsg,
-      })
+      // Fall back to stale cache rather than showing nothing
+      const stale = api.kv.get<ModelCache>("aa_model_cache", null)
+      if (stale) {
+        try {
+          const recs = await buildRecs([...stale.models], stale.fetchedAt)
+          setRecommendations({ ...recs, error: `${errorMsg} (cached)` })
+        } catch {
+          setRecommendations({ free_candidates: [], cheapest_quality_paid: [], best_value_under_budget: [], best_balanced_under_budget: [], timestamp: Date.now(), error: errorMsg })
+        }
+      } else {
+        setRecommendations({ free_candidates: [], cheapest_quality_paid: [], best_value_under_budget: [], best_balanced_under_budget: [], timestamp: Date.now(), error: errorMsg })
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  // Initial fetch
+  // Initial fetch — uses cache if fresh
   fetchRecommendations()
 
-  // Set up periodic refresh
+  // Periodic refresh always bypasses cache
   const timer = setInterval(() => {
-    fetchRecommendations()
+    fetchRecommendations(true)
   }, REFRESH_INTERVAL_MS)
 
   // Register commands and store cleanup functions
@@ -483,7 +440,7 @@ const tui: TuiPlugin = async (api) => {
       category: "Model Recommender",
       slash: { name: "refresh-models" },
       onSelect: () => {
-        fetchRecommendations()
+        fetchRecommendations(true)
         api.ui.toast({
           variant: "info",
           title: "Refreshing",
@@ -499,14 +456,21 @@ const tui: TuiPlugin = async (api) => {
       category: "Model Recommender",
       slash: { name: "set-aa-key" },
       onSelect: () => {
-        api.ui.DialogPrompt({
-          title: "Set AA API Key",
-          description: () => <text>Enter your Artificial Analysis API key:</text>,
-          placeholder: "AA_API_KEY...",
-          onConfirm: (value) => {
-            setAndStoreApiKey(value)
-          },
-        })
+        const DialogPrompt = api.ui.DialogPrompt
+        api.ui.dialog.setSize("medium")
+        api.ui.dialog.replace(() => (
+          <DialogPrompt
+            title="Set AA API Key"
+            placeholder="Enter your AA API key..."
+            onConfirm={(key) => {
+              api.ui.dialog.clear()
+              if (key.trim()) setAndStoreApiKey(key.trim())
+            }}
+            onCancel={() => {
+              api.ui.dialog.clear()
+            }}
+          />
+        ))
       },
     },
   ])
@@ -532,47 +496,6 @@ const tui: TuiPlugin = async (api) => {
      },
    })
 
-  // Also register a command to manually refresh
-  api.command.register(() => [
-    {
-      title: "Refresh Model Recommendations",
-      value: "/refresh-models",
-      description: "Fetch latest model recommendations from Artificial Analysis",
-      category: "Model Recommender",
-      onSelect: () => {
-        fetchRecommendations()
-        api.ui.toast({
-          variant: "info",
-          title: "Refreshing",
-          message: "Fetching latest model recommendations...",
-          duration: 2000,
-        })
-      },
-    },
-    {
-      title: "Set AA API Key",
-      value: "/set-aa-key",
-      description: "Configure Artificial Analysis API key for model recommendations",
-      category: "Model Recommender",
-      onSelect: () => {
-        api.ui.DialogPrompt({
-          title: "Set AA API Key",
-          description: () => <text>Enter your Artificial Analysis API key:</text>,
-          placeholder: "AA_API_KEY...",
-          onConfirm: (value) => {
-            api.kv.set("aa_api_key", value)
-            setApiKey(value)
-            fetchRecommendations()
-            api.ui.toast({
-              variant: "success",
-              title: "API Key Saved",
-              message: "Model recommendations will now use this key.",
-            })
-          },
-        })
-      },
-    },
-  ])
 }
 
 const plugin: TuiPluginModule & { id: string } = {

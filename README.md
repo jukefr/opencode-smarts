@@ -1,15 +1,19 @@
 # opencode-claude
 
-Makes opencode behave like Claude Code — autonomous, tool-heavy, and task-complete.
+Makes [opencode](https://opencode.ai) behave like Claude Code — autonomous, git-aware, and task-complete.
 
-## What this does
+## What it does
 
 Installs a global config pack into `~/.config/opencode/` that gives opencode:
 
-- **Behavioral backbone** (`AGENTS.md`) — instructs the agent to act autonomously, explore before implementing, track work with `todowrite`, run tests/linters, and only stop when truly done
-- **Smart subagents** — specialized agents for exploration, planning, review, and testing that the main agent spawns in parallel
+- **Behavioral rules** (`AGENTS.md`) — the agent explores before implementing, tracks work with `todowrite`, always creates a git branch before writing code, commits with conventional commits, offers a PR when done, and only stops when tests and linters pass
+- **Auto project detection** (plugin) — on every session start, scans the project for `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `Makefile`, etc. and creates/updates a project `AGENTS.md` with the detected stack and commands
+- **Custom primary agent** (`build`) — overrides the default build agent with explicit step-by-step instructions for the full git workflow
+- **Specialized subagents** — `@explorer`, `@planner`, `@reviewer`, `@tester` that get spawned automatically for parallel work
 - **Slash commands** — `/feature`, `/fix`, `/review`, `/pr`, `/explore`
-- **Reusable skills** — `feature-build`, `bug-fix`, `smart-commit`, `smart-pr`, `code-review`
+- **Skills** — reusable instruction sets loaded on demand: `feature-build`, `bug-fix`, `smart-commit`, `smart-pr`, `code-review`
+- **Safe permissions** — blocks `rm -rf`, force-push to main, `DROP TABLE/DATABASE` by default
+- **Context7 MCP** — library docs lookup, enabled by default
 
 ## Install
 
@@ -20,7 +24,9 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Then restart opencode.
+Restart opencode after installing.
+
+Re-running `./install.sh` is safe — symlinks are updated and `opencode.json` is merged non-destructively (your existing settings are preserved, new keys are added).
 
 ## Usage
 
@@ -28,72 +34,129 @@ Then restart opencode.
 
 | Command | What it does |
 |---------|-------------|
-| `/feature <description>` | Builds a feature end-to-end: explores, plans, implements, tests, lints, reviews |
-| `/fix <description>` | Diagnoses root cause, fixes it, verifies with tests |
-| `/review` | Reviews current branch changes for bugs, security, quality |
-| `/pr` | Commits anything uncommitted and creates a pull request |
-| `/explore <question>` | Maps relevant codebase to answer a question |
+| `/feature <description>` | Creates a `feature/<slug>` branch, explores, plans, implements, runs tests + lint, commits, offers PR |
+| `/fix <description>` | Creates a `fix/<slug>` branch, finds root cause, fixes, verifies, commits, offers PR |
+| `/review` | Reviews all changes on the current branch — correctness, security, quality, test coverage |
+| `/pr` | Commits anything uncommitted + `git push` + `gh pr create` with auto-generated description |
+| `/explore <question>` | Spawns `@explorer` to map the codebase and answer the question |
 
-### Subagents (invoke with @mention or spawned automatically)
+### Natural language requests
+
+You don't have to use slash commands. Asking normally also triggers the full workflow:
+
+> "Add pagination to the users list endpoint"
+
+The `build` agent will: check git state → create `feature/add-pagination-users-list` → read `AGENTS.md` → explore the codebase → implement → run tests → run linter → commit → ask if you want a PR.
+
+### Subagents
+
+Invoke directly with `@` or they get spawned automatically:
 
 | Agent | Purpose |
 |-------|---------|
-| `@explorer` | Read-only codebase analysis — architecture, patterns, entry points |
-| `@planner` | Designs implementation before coding — files to change, order, interfaces |
-| `@reviewer` | Code review — correctness, security, quality, test coverage |
-| `@tester` | Runs tests, explains failures, recommends fixes |
-| `@feature-dev` | Full 7-phase feature implementation |
-| `@ralph-loop` | Iterates until a completion promise is satisfied |
+| `@explorer` | Read-only codebase analysis — maps architecture, finds patterns, locates entry points |
+| `@planner` | Designs implementation plan before coding — files to change, order, interfaces, edge cases |
+| `@reviewer` | Code review — correctness, security, quality, test coverage. Never modifies files |
+| `@tester` | Runs the test suite and explains each failure with a recommended fix |
+| `@feature-dev` | Full 7-phase autonomous feature implementation |
+| `@ralph-loop` | Iterates until a completion promise is satisfied (max 10 iterations) |
 
-### Skills (load on demand)
+### Skills
 
-| Skill | When to use |
-|-------|-------------|
-| `feature-build` | Detailed feature build checklist |
-| `bug-fix` | Systematic debugging workflow |
-| `smart-commit` | Generate and create a conventional commit |
-| `smart-pr` | Create a PR with auto-generated description |
-| `code-review` | Full parallel code review |
+Loaded on demand by the agent when relevant:
+
+| Skill | When used |
+|-------|----------|
+| `feature-build` | Detailed 9-phase feature build checklist |
+| `bug-fix` | Systematic debugging — reproduce, root cause, fix, verify |
+| `smart-commit` | Generate and create a conventional commit from current changes |
+| `smart-pr` | Push branch and create PR with auto-generated description |
+| `code-review` | Full parallel review across correctness, security, quality, tests |
 
 ## Project setup
 
-Copy `templates/project-agents.md` to your project root as `AGENTS.md`:
+The `auto-agents` plugin creates a project `AGENTS.md` automatically on session start if one doesn't exist. It detects your stack and commands from config files.
+
+To customise it, edit the generated `AGENTS.md` in your project root — once you remove the placeholder text, the plugin leaves it alone.
+
+You can also start from the template manually:
 
 ```bash
 cp ~/opencode-claude/templates/project-agents.md ./AGENTS.md
 ```
 
-Fill in your test command, lint command, stack, and architecture notes. Commit it. opencode reads this at session start to understand your project.
+Fill in your test/lint commands, stack, and architecture notes. Commit it.
 
-## opencode.json
+**Detected automatically:**
 
-The install script creates `~/.config/opencode/opencode.json` only if one doesn't already exist. See `opencode.json` in this repo for a reference config with:
-- Safe permission defaults (blocks `rm -rf`, force-push to main, DROP DATABASE)
-- Context7 MCP server pre-configured (disabled by default — enable when needed)
+| File | What's extracted |
+|------|----------------|
+| `package.json` | Package manager (bun/pnpm/yarn/npm), dev/build/test/lint/typecheck scripts, framework (React, Next.js, Hono, Prisma, Vitest…) |
+| `Cargo.toml` | Rust project name, `cargo build/test/clippy` |
+| `go.mod` | Go module name, `go build/test ./...`, `golangci-lint run` |
+| `pyproject.toml` | Python stack (Django/FastAPI/Flask), pytest, ruff, mypy, poetry/uv |
+| `requirements.txt` / `setup.py` | Python project, pytest |
+| `Makefile` | `test`, `build`, `lint`, `dev` targets |
 
-To enable Context7 (free library docs lookup):
+## Configuration
+
+### opencode.json
+
+The install script merges our settings into your existing `~/.config/opencode/opencode.json`. Changes made:
+
+- **`permission`** — added safe defaults: most things allowed, `rm -rf` requires confirmation, force-push and DROP TABLE/DATABASE are blocked
+- **`mcp.context7`** — added and enabled (free library docs MCP, no API key needed)
+
+Your existing settings (`model`, `provider`, other MCPs, etc.) are untouched.
+
+Reference config is in `opencode.json` in this repo.
+
+### Enabling/disabling Context7
+
+Context7 is enabled by default. To disable:
 ```json
-{
-  "mcp": {
-    "context7": {
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp",
-      "enabled": true
-    }
-  }
-}
+{ "mcp": { "context7": { "enabled": false } } }
 ```
 
-## How it works
+Use it in prompts with: `use context7` — e.g. "How do I configure Hono middleware? use context7"
 
-The `global-agents.md` is symlinked to `~/.config/opencode/AGENTS.md` and loaded into every session. It tells the agent to:
-1. Explore before implementing
-2. Track multi-step work with `todowrite`
-3. Spawn parallel subagents for independent tasks
-4. Verify completion with tests and linters
-5. Only report done when all of the above are satisfied
+Or add to your project `AGENTS.md`:
+```
+When looking up library or framework docs, use the context7 tool.
+```
 
-The subagents (`explorer`, `planner`, `reviewer`, `tester`) are configured with tight permissions — they can only do what their role requires. The orchestrating agents (`build` via AGENTS.md, `feature-dev`) have full permissions to spawn and coordinate.
+## Repository structure
+
+```
+opencode-claude/
+├── install.sh                  # Symlink installer + opencode.json merge
+├── opencode.json               # Config template (permissions, context7 MCP)
+├── templates/
+│   ├── global-agents.md        # Global rules → ~/.config/opencode/AGENTS.md
+│   └── project-agents.md      # Project AGENTS.md template (manual use)
+├── agents/
+│   ├── build.md                # Primary agent override — full git workflow
+│   ├── explorer.md             # Read-only codebase analyst
+│   ├── planner.md              # Implementation architect
+│   ├── reviewer.md             # Code reviewer
+│   ├── tester.md               # Test runner and failure explainer
+│   ├── feature-dev.md          # Autonomous 7-phase feature developer
+│   └── ralph-loop.md           # Iterative loop agent
+├── commands/
+│   ├── feature.md              # /feature
+│   ├── fix.md                  # /fix
+│   ├── review.md               # /review
+│   ├── pr.md                   # /pr
+│   └── explore.md              # /explore
+├── skills/
+│   ├── feature-build/SKILL.md
+│   ├── bug-fix/SKILL.md
+│   ├── smart-commit/SKILL.md
+│   ├── smart-pr/SKILL.md
+│   └── code-review/SKILL.md
+└── plugins/
+    └── auto-agents.ts          # Session-start AGENTS.md auto-detection
+```
 
 ## Uninstall
 
@@ -102,4 +165,7 @@ rm ~/.config/opencode/AGENTS.md
 rm -rf ~/.config/opencode/agents/
 rm -rf ~/.config/opencode/skills/
 rm -rf ~/.config/opencode/commands/
+rm -rf ~/.config/opencode/plugins/
 ```
+
+Then manually remove the `permission` and `mcp.context7` blocks from `~/.config/opencode/opencode.json` if you want to revert those too.

@@ -6,12 +6,13 @@ OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
 AGENTS_DIR="$OPENCODE_CONFIG_DIR/agents"
 SKILLS_DIR="$OPENCODE_CONFIG_DIR/skills"
 COMMANDS_DIR="$OPENCODE_CONFIG_DIR/commands"
+PLUGINS_DIR="$OPENCODE_CONFIG_DIR/plugins"
 
 echo "Installing opencode-claude..."
 echo ""
 
 # Create config dirs
-mkdir -p "$AGENTS_DIR" "$SKILLS_DIR" "$COMMANDS_DIR"
+mkdir -p "$AGENTS_DIR" "$SKILLS_DIR" "$COMMANDS_DIR" "$PLUGINS_DIR"
 
 # Global AGENTS.md
 ln -sf "$REPO_DIR/templates/global-agents.md" "$OPENCODE_CONFIG_DIR/AGENTS.md"
@@ -39,6 +40,14 @@ for cmd_file in "$REPO_DIR/commands"/*.md; do
   cmd_name=$(basename "$cmd_file")
   ln -sf "$cmd_file" "$COMMANDS_DIR/$cmd_name"
   echo "✓ command: /$( basename "$cmd_name" .md)"
+done
+
+# Plugins
+for plugin_file in "$REPO_DIR/plugins"/*; do
+  [ -f "$plugin_file" ] || continue
+  plugin_name=$(basename "$plugin_file")
+  ln -sf "$plugin_file" "$PLUGINS_DIR/$plugin_name"
+  echo "✓ plugin: $plugin_name"
 done
 
 # opencode.json — merge our settings into existing config, or install fresh

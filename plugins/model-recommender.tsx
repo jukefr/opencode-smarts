@@ -401,6 +401,18 @@ const tui: TuiPlugin = async (api) => {
     return stored || null
   }
 
+  // Set and store API key
+  const setAndStoreApiKey = (key: string) => {
+    api.kv.set("aa_api_key", key)
+    setApiKey(key)
+    fetchRecommendations()
+    api.ui.toast({
+      variant: "success",
+      title: "API Key Saved",
+      message: "Model recommendations will now use this key.",
+    })
+  }
+
   // Fetch recommendations
   const fetchRecommendations = async () => {
     const key = getApiKey()
@@ -411,7 +423,7 @@ const tui: TuiPlugin = async (api) => {
         best_value_under_budget: [],
         best_balanced_under_budget: [],
         timestamp: Date.now(),
-        error: "AA_API_KEY not set. Set env var or use /set-aa-key command.",
+        error: "AA_API_KEY not set. Use /set-aa-key or set AA_API_KEY env var.",
       })
       return
     }
@@ -434,13 +446,18 @@ const tui: TuiPlugin = async (api) => {
       const recs = pickRecommendations(models)
       setRecommendations(recs)
     } catch (error: any) {
+      let errorMsg = error.message || "Failed to fetch recommendations"
+      // Provide helpful message for 401 errors
+      if (error.message.includes("401")) {
+        errorMsg = "Invalid API key (401). Please check your AA_API_KEY and try again with /set-aa-key"
+      }
       setRecommendations({
         free_candidates: [],
         cheapest_quality_paid: [],
         best_value_under_budget: [],
         best_balanced_under_budget: [],
         timestamp: Date.now(),
-        error: error.message || "Failed to fetch recommendations",
+        error: errorMsg,
       })
     } finally {
       setLoading(false)
@@ -485,14 +502,7 @@ const tui: TuiPlugin = async (api) => {
           description: () => <text>Enter your Artificial Analysis API key:</text>,
           placeholder: "AA_API_KEY...",
           onConfirm: (value) => {
-            api.kv.set("aa_api_key", value)
-            setApiKey(value)
-            fetchRecommendations()
-            api.ui.toast({
-              variant: "success",
-              title: "API Key Saved",
-              message: "Model recommendations will now use this key.",
-            })
+            setAndStoreApiKey(value)
           },
         })
       },

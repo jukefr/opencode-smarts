@@ -43,8 +43,16 @@ export default {
     }
   },
 }
+        
+        debugLog("Running syncAgentsMd for worktree:", worktree)
+        await syncAgentsMd(worktree)
+        debugLog("syncAgentsMd completed")
+      },
+    }
+  },
+}
 
-// ─── helpers ────────────────────────────────────────────────────────────
+// ─── helpers ────────────────────────────────────────────────────────────────
 
 async function exists(p: string) {
   try { await access(p); return true } catch { return false }
@@ -58,7 +66,7 @@ async function readJson(p: string) {
   try { return JSON.parse(await readFile(p, "utf-8")) } catch { return null }
 }
 
-// ─── main ──────────────────────────────────────────────────────────────
+// ─── main ───────────────────────────────────────────────────────────────────
 
 async function syncAgentsMd(worktree: string) {
   if (!worktree) return
@@ -81,7 +89,7 @@ async function syncAgentsMd(worktree: string) {
   await writeFile(agentsMdPath, renderAgentsMd(info), "utf-8")
 }
 
-// ─── detection ──────────────────────────────────────────────────────────
+// ─── detection ──────────────────────────────────────────────────────────────
 
 interface ProjectInfo {
   hasAnything: boolean
@@ -169,7 +177,7 @@ async function detectMakefile(worktree: string, info: ProjectInfo) {
   info.hasAnything = true
 }
 
-// ─── render ─────────────────────────────────────────────────────────────
+// ─── render ─────────────────────────────────────────────────────────────────
 
 function renderAgentsMd(info: ProjectInfo) {
   const { commands: c } = info

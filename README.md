@@ -8,7 +8,7 @@ Installs a global config pack into `~/.config/opencode/` that gives opencode:
 
 - **Behavioral rules** (`AGENTS.md`) — the agent explores before implementing, tracks work with `todowrite`, always creates a git branch before writing code, commits with conventional commits, offers a PR when done, and only stops when tests and linters pass
 - **Auto project detection** (plugin) — on every session start, scans the project for `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `Makefile`, etc. and creates/updates a project `AGENTS.md` with the detected stack and commands
-- **Auto GPL3 license** (plugin) — on every session start, automatically adds the GPLv3 license file if no other license exists in the repository
+- **Auto GPL3 license** (plugin) — on every session start, fetches the GPLv3 text from gnu.org and writes a `LICENSE` file if none exists in the repository
 - **Model recommender** (TUI plugin) — sidebar panel showing the best free and best paid models based on live data from Artificial Analysis, with a 4-hour local cache to avoid rate limits. Score is a composite of coding ability, intelligence, price, and speed
 - **Free OpenRouter models** (plugin) — automatically adds all `:free` OpenRouter models to the model picker, no API key required
 - **Rule reinforcement** (plugin) — re-injects the critical git/test/commit rules into the system prompt on every LLM call and into the compaction prompt, so the agent keeps following them even deep into long sessions

@@ -22,17 +22,27 @@ export default {
       event: async ({ event }: { event: any }) => {
         debugLog("Event received:", event.type, "properties:", JSON.stringify(event.properties))
         // Only handle session.created events
-        if (event.type !== "session.created") return
+        if (event.type !== "session.created") return;
 
         // Get session info from event properties
-        const session = event.properties?.info as { parentID?: string }
-        debugLog("Session created, parentID:", session?.parentID)
+        const session = event.properties?.info as { parentID?: string; directory?: string }
+        debugLog("Session created, parentID:", session?.parentID, "directory:", session?.directory)
         
         // Only run for top-level sessions, not subagents
         if (session?.parentID) {
           debugLog("Skipping - subagent session")
           return
         }
+        
+        // Use directory from session event (correct), fallback to worktree
+        const projectDir = session?.directory || worktree
+        debugLog("Running syncAgentsMd for directory:", projectDir)
+        await syncAgentsMd(projectDir)
+        debugLog("syncAgentsMd completed")
+      },
+    }
+  },
+}
         
         debugLog("Running syncAgentsMd for worktree:", worktree)
         await syncAgentsMd(worktree)

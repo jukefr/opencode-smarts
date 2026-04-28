@@ -3,9 +3,16 @@ import path from "path"
 
 export const AutoLicense = async ({ worktree }: { worktree: string }) => {
   return {
-    "session.created": async ({ session }: { session: { parentID?: string } }) => {
+    event: async ({ event }) => {
+      // Only handle session.created events
+      if (event.type !== "session.created") return
+
+      // Get session info from event properties
+      const session = event.properties.info as { parentID?: string }
+      
       // Only run for top-level sessions, not subagents
       if (session.parentID) return
+      
       await ensureGpl3License(worktree)
     },
   }

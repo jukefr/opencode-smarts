@@ -1,21 +1,42 @@
 import { readFile, writeFile, access } from "fs/promises"
 import path from "path"
+import { appendFileSync } from "fs"
+
+// Debug log file
+const DEBUG_LOG = "/tmp/auto-license-debug.log"
+
+function debugLog(...args: any[]) {
+  try {
+    appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] ${args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" ")}\n`)
+  } catch {}
+}
+
+// Clear log on load
+try { writeFile(DEBUG_LOG, "") } catch {}
 
 export default {
   id: "auto-license",
   server: async ({ worktree }: { worktree: string }) => {
+    debugLog("Plugin loaded, worktree:", worktree)
     return {
       event: async ({ event }: { event: any }) => {
+        debugLog("Event received:", event.type, "properties:", JSON.stringify(event.properties))
         // Only handle session.created events
         if (event.type !== "session.created") return
 
         // Get session info from event properties
         const session = event.properties?.info as { parentID?: string }
+        debugLog("Session created, parentID:", session?.parentID)
         
         // Only run for top-level sessions, not subagents
-        if (session?.parentID) return
+        if (session?.parentID) {
+          debugLog("Skipping - subagent session")
+          return
+        }
         
+        debugLog("Running ensureGpl3License for worktree:", worktree)
         await ensureGpl3License(worktree)
+        debugLog("ensureGpl3License completed")
       },
     }
   },

@@ -43,14 +43,6 @@ export default {
     }
   },
 }
-        
-        debugLog("Running syncAgentsMd for worktree:", worktree)
-        await syncAgentsMd(worktree)
-        debugLog("syncAgentsMd completed")
-      },
-    }
-  },
-}
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

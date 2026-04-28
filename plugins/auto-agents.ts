@@ -1,44 +1,23 @@
 import { readFile, writeFile, access } from "fs/promises"
 import path from "path"
-import { appendFileSync } from "fs"
-
-// Debug log file
-const DEBUG_LOG = "/tmp/auto-agents-debug.log"
-
-function debugLog(...args: any[]) {
-  try {
-    appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] ${args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" ")}\n`)
-  } catch {}
-}
-
-// Clear log on load
-try { writeFile(DEBUG_LOG, "") } catch {}
 
 export default {
   id: "auto-agents",
   server: async ({ worktree }: { worktree: string }) => {
-    debugLog("Plugin loaded, worktree:", worktree)
     return {
       event: async ({ event }: { event: any }) => {
-        debugLog("Event received:", event.type, "properties:", JSON.stringify(event.properties))
         // Only handle session.created events
         if (event.type !== "session.created") return;
 
         // Get session info from event properties
         const session = event.properties?.info as { parentID?: string; directory?: string }
-        debugLog("Session created, parentID:", session?.parentID, "directory:", session?.directory)
-        
+
         // Only run for top-level sessions, not subagents
-        if (session?.parentID) {
-          debugLog("Skipping - subagent session")
-          return
-        }
-        
+        if (session?.parentID) return;
+
         // Use directory from session event (correct), fallback to worktree
         const projectDir = session?.directory || worktree
-        debugLog("Running syncAgentsMd for directory:", projectDir)
         await syncAgentsMd(projectDir)
-        debugLog("syncAgentsMd completed")
       },
     }
   },

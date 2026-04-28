@@ -411,7 +411,7 @@ const tui: TuiPlugin = async (api) => {
         best_value_under_budget: [],
         best_balanced_under_budget: [],
         timestamp: Date.now(),
-        error: "AA_API_KEY not set. Set env var or use plugin config.",
+        error: "AA_API_KEY not set. Set env var or use /set-aa-key command.",
       })
       return
     }
@@ -455,9 +455,54 @@ const tui: TuiPlugin = async (api) => {
     fetchRecommendations()
   }, REFRESH_INTERVAL_MS)
 
+  // Register commands and store cleanup functions
+  const unregisterCommands = api.command.register(() => [
+    {
+      title: "Refresh Model Recommendations",
+      value: "refresh-models",
+      description: "Fetch latest model recommendations from Artificial Analysis",
+      category: "Model Recommender",
+      slash: { name: "refresh-models" },
+      onSelect: () => {
+        fetchRecommendations()
+        api.ui.toast({
+          variant: "info",
+          title: "Refreshing",
+          message: "Fetching latest model recommendations...",
+          duration: 2000,
+        })
+      },
+    },
+    {
+      title: "Set AA API Key",
+      value: "set-aa-key",
+      description: "Configure Artificial Analysis API key for model recommendations",
+      category: "Model Recommender",
+      slash: { name: "set-aa-key" },
+      onSelect: () => {
+        api.ui.DialogPrompt({
+          title: "Set AA API Key",
+          description: () => <text>Enter your Artificial Analysis API key:</text>,
+          placeholder: "AA_API_KEY...",
+          onConfirm: (value) => {
+            api.kv.set("aa_api_key", value)
+            setApiKey(value)
+            fetchRecommendations()
+            api.ui.toast({
+              variant: "success",
+              title: "API Key Saved",
+              message: "Model recommendations will now use this key.",
+            })
+          },
+        })
+      },
+    },
+  ])
+
   // Cleanup on dispose
   api.lifecycle.onDispose(() => {
     clearInterval(timer)
+    unregisterCommands()
   })
 
    // Register sidebar slot

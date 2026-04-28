@@ -35,7 +35,7 @@ async function syncAgentsMd(worktree: string) {
 
   // Leave it alone if it's already been customised (no placeholder markers left)
   const isGenerated = existing === "" ||
-    existing.includes("<!-- opencode-claude:auto -->") ||
+    existing.includes("<!-- opencode-smarts:auto -->") ||
     existing.includes("[Replace with") ||
     existing.includes("[Add key") ||
     existing.includes("[Add project-specific")
@@ -221,7 +221,7 @@ function renderAgentsMd(info: ProjectInfo) {
     c.typecheck  && `# Typecheck\n${c.typecheck}`,
   ].filter(Boolean).join("\n\n")
 
-  return `<!-- opencode-claude:auto -->
+  return `<!-- opencode-smarts:auto -->
 # Project Rules
 
 ## Project Overview

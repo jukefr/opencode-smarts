@@ -1,6 +1,6 @@
-# opencode-claude
+# opencode-smarts
 
-Makes [opencode](https://opencode.ai) behave like Claude Code — autonomous, git-aware, and task-complete.
+Makes [opencode](https://opencode.ai) behave like an autonomous coding assistant — git-aware, task-complete, and optimized for complex workflows.
 
 ## What it does
 
@@ -18,8 +18,8 @@ Installs a global config pack into `~/.config/opencode/` that gives opencode:
 ## Install
 
 ```bash
-git clone <this-repo> ~/opencode-claude
-cd ~/opencode-claude
+git clone <this-repo> ~/opencode-smarts
+cd ~/opencode-smarts
 chmod +x install.sh
 ./install.sh
 ```
@@ -82,7 +82,7 @@ To customise it, edit the generated `AGENTS.md` in your project root — once yo
 You can also start from the template manually:
 
 ```bash
-cp ~/opencode-claude/templates/project-agents.md ./AGENTS.md
+cp ~/opencode-smarts/templates/project-agents.md ./AGENTS.md
 ```
 
 Fill in your test/lint commands, stack, and architecture notes. Commit it.
@@ -128,7 +128,7 @@ When looking up library or framework docs, use the context7 tool.
 ## Repository structure
 
 ```
-opencode-claude/
+opencode-smarts/
 ├── install.sh                  # Symlink installer + opencode.json merge
 ├── opencode.json               # Config template (permissions, context7 MCP)
 ├── templates/

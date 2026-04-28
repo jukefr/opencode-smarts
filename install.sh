@@ -8,7 +8,7 @@ SKILLS_DIR="$OPENCODE_CONFIG_DIR/skills"
 COMMANDS_DIR="$OPENCODE_CONFIG_DIR/commands"
 PLUGINS_DIR="$OPENCODE_CONFIG_DIR/plugins"
 
-echo "Installing opencode-claude..."
+echo "Installing opencode-smarts..."
 echo ""
 
 # Create config dirs
